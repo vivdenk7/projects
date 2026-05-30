@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protein Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f5f2;
+    --surface: #ffffff;
+    --border: #e8e3dc;
+    --text: #1a1a1a;
+    --text-muted: #6b6560;
+    --accent: #2d6a4f;
+    --accent-light: #e8f4ee;
+    --blob-easy: #74b494;
+    --blob-mid: #e09c45;
+    --blob-hard: #c0614a;
+    --plate-rim: #ede8e0;
+    --plate-inner: #faf8f5;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  header p {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .search-row {
+    display: flex;
+    gap: 12px;
+    max-width: 640px;
+    margin: 0 auto 40px;
+    align-items: flex-end;
+  }
+
+  .search-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .search-field label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  .search-field input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-field input:focus {
+    border-color: var(--accent);
+  }
+
+  .search-field input::placeholder {
+    color: #b5afa8;
+  }
+
+  button#compare-btn {
+    padding: 10px 22px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+    height: 42px;
+  }
+
+  button#compare-btn:hover { background: #235a41; }
+  button#compare-btn:active { transform: scale(0.97); }
+  button#compare-btn:disabled { background: #a8c4b8; cursor: not-allowed; }
+
+  #status {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    min-height: 24px;
+    margin-bottom: 24px;
+  }
+
+  #status.error { color: #c0614a; }
+
+  .results {
+    max-width: 840px;
+    margin: 0 auto;
+    display: none;
+  }
+
+  .results.visible { display: block; }
+
+  /* Stat cards */
+  .cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .stat-card .food-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-row .label { color: var(--text-muted); }
+
+  .stat-row .value {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stat-row .value.highlight {
+    color: var(--accent);
+    font-size: 1rem;
+  }
+
+  /* Plates section */
+  .plates-section {
+    margin-bottom: 32px;
+  }
+
+  .plates-section h2 {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .plates-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+
+  .plate-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .plate-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    max-width: 200px;
+  }
+
+  .plate-sublabel {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: -10px;
+  }
+
+  svg.plate {
+    filter: drop-shadow(0 4px 16px rgba(0,0,0,0.10));
+    border-radius: 50%;
+  }
+
+  /* Insight */
+  .insight-box {
+    background: var(--accent-light);
+    border: 1.5px solid #c0ddd0;
+    border-radius: 14px;
+    padding: 18px 22px;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #1a3d2f;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 540px) {
+    .search-row { flex-direction: column; }
+    button#compare-btn { width: 100%; }
+    .cards-row { grid-template-columns: 1fr; }
+    .plates-row { gap: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Protein Visualizer</h1>
+  <p>See how much of a food you'd actually need to eat to get 10g of protein.</p>
+</header>
+
+<div class="search-row">
+  <div class="search-field">
+    <label>Food 1</label>
+    <input type="text" id="food1" placeholder="e.g. walnuts" />
+  </div>
+  <div class="search-field">
+    <label>Food 2 (optional)</label>
+    <input type="text" id="food2" placeholder="e.g. lentils" />
+  </div>
+  <button id="compare-btn">Compare</button>
+</div>
+
+<div id="status"></div>
+
+<div class="results" id="results">
+  <div class="cards-row" id="cards-row"></div>
+  <div class="plates-section">
+    <h2>Servings needed to reach 10g protein</h2>
+    <div class="plates-row" id="plates-row"></div>
+  </div>
+  <div class="insight-box" id="insight-box"></div>
+</div>
+
+<script>
+const API_BASE = 'https://api.nal.usda.gov/fdc/v1';
+const API_KEY = 'DEMO_KEY';
+const PROTEIN_GOAL = 10; // grams
+
+// Human-readable quantity descriptions for common foods (keyword → per-serving label)
+const SERVING_DESCRIPTIONS = [
+  { keywords: ['walnut', 'pecan', 'cashew', 'pistachio', 'almond', 'peanut', 'hazelnut', 'macadamia'], unit: 'handful' },
+  { keywords: ['lentil', 'chickpea', 'black bean', 'kidney bean', 'navy bean', 'bean', 'edamame'], unit: 'half-cup scoop' },
+  { keywords: ['tofu', 'tempeh'], unit: 'slice' },
+  { keywords: ['egg'], unit: 'egg' },
+  { keywords: ['yogurt', 'cottage cheese'], unit: 'cup' },
+  { keywords: ['cheese'], unit: 'slice' },
+  { keywords: ['milk'], unit: 'cup' },
+  { keywords: ['quinoa', 'oat', 'rice', 'grain', 'cereal'], unit: 'cup' },
+  { keywords: ['pumpkin seed', 'sunflower seed', 'hemp seed', 'chia seed', 'seed'], unit: 'tablespoon' },
+  { keywords: ['butter', 'spread'], unit: 'tablespoon' },
+  { keywords: ['protein powder', 'powder'], unit: 'scoop' },
+];
+
+function getServingUnit(foodName) {
+  const lower = foodName.toLowerCase();
+  for (const entry of SERVING_DESCRIPTIONS) {
+    if (entry.keywords.some(k => lower.includes(k))) return entry.unit;
+  }
+  return 'serving';
+}
+
+function pluralize(n, word) {
+  if (word === 'tablespoon') return n === 1 ? '1 tablespoon' : `${n} tablespoons`;
+  if (word === 'half-cup scoop') return n === 1 ? '1 half-cup scoop' : `${n} half-cup scoops`;
+  return n === 1 ? `1 ${word}` : `${n} ${word}s`;
+}
+
+async function searchFood(query, attempt = 0) {
+  const url = `${API_BASE}/foods/search?query=${encodeURIComponent(query)}&api_key=${API_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy`;
+  const res = await fetch(url);
+  if (res.status === 429) {
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      return searchFood(query, attempt + 1);
+    }
+    throw new Error('The food database is temporarily rate-limited. Wait a moment and try again.');
+  }
+  if (!res.ok) throw new Error(`Food database error (${res.status}). Try again shortly.`);
+  const data = await res.json();
+  if (!data.foods || data.foods.length === 0) throw new Error(`No results found for "${query}" — try a simpler name.`);
+  return data.foods[0];
+}
+
+function extractProtein(food) {
+  const nutrients = food.foodNutrients || [];
+  const p = nutrients.find(n => n.nutrientId === 1003 || (n.nutrient && n.nutrient.id === 1003)
+    || n.nutrientNumber === '203' || (n.nutrient && n.nutrient.number === '203'));
+  if (!p) return null;
+  return p.value ?? p.amount ?? null;
+}
+
+function extractServing(food) {
+  // Try foodPortions first
+  if (food.foodPortions && food.foodPortions.length > 0) {
+    const portion = food.foodPortions[0];
+    const grams = portion.gramWeight || portion.gram_weight;
+    const desc = portion.portionDescription || portion.measureUnit?.name || portion.modifier || '';
+    if (grams && grams > 0) return { grams, desc };
+  }
+  // Fallback by food name heuristics
+  const name = (food.description || '').toLowerCase();
+  if (name.includes('almond') || name.includes('walnut') || name.includes('cashew') ||
+      name.includes('pecan') || name.includes('pistachio') || name.includes('peanut') ||
+      name.includes('hazelnut') || name.includes('macadamia') || name.includes('nut')) {
+    return { grams: 28, desc: '1 oz' };
+  }
+  if (name.includes('seed')) return { grams: 30, desc: '2 tbsp' };
+  if (name.includes('lentil') || name.includes('bean') || name.includes('chickpea') || name.includes('edamame')) {
+    return { grams: 130, desc: '½ cup cooked' };
+  }
+  if (name.includes('tofu')) return { grams: 126, desc: '½ cup' };
+  if (name.includes('tempeh')) return { grams: 85, desc: '3 oz' };
+  if (name.includes('egg')) return { grams: 50, desc: '1 large egg' };
+  if (name.includes('yogurt')) return { grams: 245, desc: '1 cup' };
+  if (name.includes('cheese') && name.includes('cottage')) return { grams: 113, desc: '½ cup' };
+  if (name.includes('cheese')) return { grams: 28, desc: '1 oz' };
+  if (name.includes('milk')) return { grams: 244, desc: '1 cup' };
+  if (name.includes('quinoa') || name.includes('oat') || name.includes('grain')) {
+    return { grams: 185, desc: '1 cup cooked' };
+  }
+  return { grams: 100, desc: '100g' };
+}
+
+function formatNum(n) {
+  return Number.isInteger(n) ? n.toString() : n.toFixed(1);
+}
+
+function blobColor(servings) {
+  if (servings <= 2) return 'var(--blob-easy)';
+  if (servings <= 4) return 'var(--blob-mid)';
+  return 'var(--blob-hard)';
+}
+
+function buildPlate(foodName, servings, servingDesc) {
+  const SIZE = 220;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const PLATE_R = SIZE / 2 - 4;
+  const INNER_R = PLATE_R - 14;
+  const cappedServings = Math.min(servings, 16); // cap visual at 16 blobs
+  const color = blobColor(servings);
+
+  // Layout blobs in a grid inside the circle
+  const blobR = cappedServings <= 1 ? INNER_R * 0.55
+               : cappedServings <= 4 ? INNER_R * 0.32
+               : cappedServings <= 9 ? INNER_R * 0.23
+               : INNER_R * 0.18;
+
+  const blobs = [];
+  // Use a sunflower/spiral packing for natural feel
+  const phi = Math.PI * (3 - Math.sqrt(5)); // golden angle
+  const usable = INNER_R - blobR - 4;
+
+  for (let i = 0; i < cappedServings; i++) {
+    const r = Math.sqrt((i + 0.5) / cappedServings) * usable;
+    const theta = i * phi;
+    blobs.push({ x: CX + r * Math.cos(theta), y: CY + r * Math.sin(theta) });
+  }
+
+  let blobsSVG = blobs.map((b, i) => {
+    const opacity = 0.85 + (i % 3) * 0.05;
+    return `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${blobR.toFixed(1)}" fill="${color}" opacity="${opacity}" />`;
+  }).join('');
+
+  // Overflow indicator
+  let overflowSVG = '';
+  if (servings > 16) {
+    overflowSVG = `<text x="${CX}" y="${CY + INNER_R - 8}" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="600" fill="${color}">+${servings - 16} more</text>`;
+  }
+
+  const svg = `<svg class="plate" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" xmlns="http://www.w3.org/2000/svg">
+    <!-- Plate rim -->
+    <circle cx="${CX}" cy="${CY}" r="${PLATE_R}" fill="var(--plate-rim)" />
+    <!-- Plate surface -->
+    <circle cx="${CX}" cy="${CY}" r="${INNER_R}" fill="var(--plate-inner)" />
+    <!-- Food blobs -->
+    ${blobsSVG}
+    ${overflowSVG}
+  </svg>`;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'plate-wrapper';
+  wrapper.innerHTML = `
+    ${svg}
+    <div class="plate-label">${foodName}</div>
+    <div class="plate-sublabel">${servings} × ${servingDesc} = 10g protein</div>
+  `;
+  return wrapper;
+}
+
+function buildCard(food, proteinPer100g, serving, proteinPerServing, servingsNeeded) {
+  const card = document.createElement('div');
+  card.className = 'stat-card';
+  const name = food.description || 'Unknown';
+  card.innerHTML = `
+    <div class="food-name" title="${name}">${name}</div>
+    <div class="stat-row"><span class="label">Protein per 100g</span><span class="value">${formatNum(proteinPer100g)}g</span></div>
+    <div class="stat-row"><span class="label">Typical serving</span><span class="value">${serving.desc} (${serving.grams}g)</span></div>
+    <div class="stat-row"><span class="label">Protein per serving</span><span class="value">${formatNum(proteinPerServing)}g</span></div>
+    <div class="stat-row"><span class="label">Servings to hit 10g</span><span class="value highlight">${servingsNeeded}</span></div>
+  `;
+  return card;
+}
+
+function buildInsight(food1Name, servings1, servingUnit1, food2Name, servings2, servingUnit2) {
+  const s1 = servings1, s2 = servings2;
+  const n1 = food1Name.split(',')[0];
+  const n2 = food2Name.split(',')[0];
+  const qty1 = pluralize(s1, servingUnit1);
+  const qty2 = pluralize(s2, servingUnit2);
+
+  if (s1 === s2) {
+    return `Both foods give you roughly the same protein per serving — ${qty1} of either will get you to 10g.`;
+  }
+
+  const [easier, harderQty, harderName, easierQty, easierName] =
+    s1 < s2
+      ? [n1, qty2, n2, qty1, n1]
+      : [n2, qty1, n1, qty2, n2];
+
+  const ratio = Math.max(s1, s2) / Math.min(s1, s2);
+  let ratioText = '';
+  if (ratio >= 3) ratioText = ` — that's more than ${Math.floor(ratio)}× as much`;
+  else if (ratio >= 1.5) ratioText = ` — noticeably more`;
+
+  return `To get 10g of protein, you need ${harderQty} of ${harderName}, but only ${easierQty} of ${easierName}${ratioText}. ${easier} is the more protein-efficient choice.`;
+}
+
+async function run() {
+  const btn = document.getElementById('compare-btn');
+  const statusEl = document.getElementById('status');
+  const resultsEl = document.getElementById('results');
+  const cardsRow = document.getElementById('cards-row');
+  const platesRow = document.getElementById('plates-row');
+  const insightBox = document.getElementById('insight-box');
+
+  let q1 = document.getElementById('food1').value.trim();
+  let q2 = document.getElementById('food2').value.trim();
+
+  if (!q1 && !q2) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'Please enter at least one food.';
+    return;
+  }
+
+  // Default logic
+  if (!q1 && q2) { q1 = q2; q2 = ''; }
+  if (q1 && !q2) {
+    const isAlmonds = q1.toLowerCase().includes('almond');
+    q2 = isAlmonds ? 'Greek yogurt' : 'almonds';
+  }
+
+  btn.disabled = true;
+  statusEl.className = '';
+  statusEl.innerHTML = '<span class="spinner"></span>Looking up foods…';
+  resultsEl.classList.remove('visible');
+  cardsRow.innerHTML = '';
+  platesRow.innerHTML = '';
+
+  try {
+    const [food1, food2] = await Promise.all([searchFood(q1), searchFood(q2)]);
+
+    const p1per100 = extractProtein(food1);
+    const p2per100 = extractProtein(food2);
+
+    if (p1per100 === null) throw new Error(`Couldn't find protein data for "${q1}"`);
+    if (p2per100 === null) throw new Error(`Couldn't find protein data for "${q2}"`);
+
+    const serving1 = extractServing(food1);
+    const serving2 = extractServing(food2);
+
+    const pps1 = (p1per100 / 100) * serving1.grams;
+    const pps2 = (p2per100 / 100) * serving2.grams;
+
+    const servings1 = Math.ceil(PROTEIN_GOAL / pps1);
+    const servings2 = Math.ceil(PROTEIN_GOAL / pps2);
+
+    // Cards
+    cardsRow.appendChild(buildCard(food1, p1per100, serving1, pps1, servings1));
+    cardsRow.appendChild(buildCard(food2, p2per100, serving2, pps2, servings2));
+
+    // Plates
+    const unit1 = getServingUnit(food1.description || q1);
+    const unit2 = getServingUnit(food2.description || q2);
+    platesRow.appendChild(buildPlate(food1.description.split(',')[0], servings1, serving1.desc));
+    platesRow.appendChild(buildPlate(food2.description.split(',')[0], servings2, serving2.desc));
+
+    // Insight
+    insightBox.textContent = buildInsight(food1.description, servings1, unit1, food2.description, servings2, unit2);
+
+    statusEl.textContent = '';
+    resultsEl.classList.add('visible');
+  } catch (err) {
+    statusEl.className = 'error';
+    statusEl.textContent = err.message || 'Something went wrong. Try again.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('compare-btn').addEventListener('click', run);
+document.getElementById('food1').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+document.getElementById('food2').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+</script>
+</body>
+</html>
