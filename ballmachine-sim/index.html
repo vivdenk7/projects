@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Ball Machine — Control Panel</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #181818;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    padding: 40px 20px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    width: 310px;
+    text-align: left;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f0ede8;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .page-desc {
+    font-size: 13px;
+    font-weight: 400;
+    color: #a09e9a;
+    line-height: 1.6;
+  }
+
+  /* ── WRAP holds frame + tooltip side by side ── */
+  .panel-wrap {
+    position: relative;
+  }
+
+  /* ── OUTER FRAME ── */
+  .frame {
+    position: relative;
+    width: 310px;
+    background: linear-gradient(155deg, #4d9c44 0%, #357030 60%, #2d6028 100%);
+    border-radius: 11px;
+    padding: 18px 15px 20px;
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.18),
+      inset 0 -2px 4px rgba(0,0,0,0.25),
+      0 18px 56px rgba(0,0,0,0.9),
+      0 4px 14px rgba(0,0,0,0.55);
+  }
+
+  /* Screw heads */
+  .screw {
+    position: absolute;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #d8d4cc, #7a7870);
+    border: 1px solid #5a5850;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .screw::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    background:
+      linear-gradient(45deg,  transparent 42%, rgba(0,0,0,0.35) 42%, rgba(0,0,0,0.35) 58%, transparent 58%),
+      linear-gradient(-45deg, transparent 42%, rgba(0,0,0,0.35) 42%, rgba(0,0,0,0.35) 58%, transparent 58%);
+  }
+  .s-tl { top: 7px;    left:  7px; }
+  .s-tr { top: 7px;    right: 7px; }
+  .s-t2 { top: 7px;    left:  calc(50% - 22px); }
+  .s-t3 { top: 7px;    right: calc(50% - 22px); }
+  .s-bl { bottom: 8px; left:  7px; }
+  .s-br { bottom: 8px; right: 7px; }
+
+  /* ── FACE ── */
+  .face {
+    background: #d2d0c8;
+    border-radius: 3px;
+    padding: 12px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ══════════════════════════════════
+     ROW 1 — Toggle switches
+  ══════════════════════════════════ */
+  .row-toggles {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .main-toggles {
+    display: flex;
+    gap: 10px;
+  }
+
+  .sw {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .sw-name {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #1a1a1a;
+  }
+
+  .sw-lbl {
+    font-size: 7px;
+    font-weight: 700;
+    color: #303030;
+    line-height: 1.3;
+  }
+
+  .sw-housing {
+    width: 14px;
+    height: 32px;
+    background: #b4b2aa;
+    border-radius: 3px;
+    border: 1px solid #999790;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.22), inset 0 -1px 2px rgba(255,255,255,0.12);
+    position: relative;
+    overflow: visible;
+  }
+
+  .sw-lever {
+    position: absolute;
+    left: -2px;
+    width: 18px;
+    height: 12px;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, #e6e4dc 0%, #c8c6be 100%);
+    border: 1px solid #aaa8a0;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: top 0.13s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sw .sw-lever.pos-on      { top: 1px; }
+  .sw .sw-lever.pos-neutral { top: 10px; }
+  .sw .sw-lever.pos-off     { top: 19px; }
+
+  .side-toggle-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  /* ══════════════════════════════════
+     ROW 2 — Court + spread/remote
+  ══════════════════════════════════ */
+  .row-middle {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .court-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .court-wrap svg {
+    display: block;
+    width: 116px;
+  }
+
+  .right-ctrls {
+    width: 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ctrl-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 100%;
+  }
+
+  .ctrl-lbl {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .sublabels {
+    display: flex;
+    justify-content: space-between;
+    width: 64px;
+  }
+
+  .sub {
+    font-size: 7px;
+    font-weight: 700;
+    color: #2a2a28;
+  }
+
+  .sw-remote {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    margin-top: 2px;
+  }
+
+  .sw-remote .sw-housing {
+    width: 14px;
+    height: 32px;
+    background: #b4b2aa;
+    border-radius: 3px;
+    border: 1px solid #999790;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.22), inset 0 -1px 2px rgba(255,255,255,0.12);
+    position: relative;
+    overflow: visible;
+  }
+
+  .sw-remote .sw-lever {
+    position: absolute;
+    left: -2px;
+    width: 18px;
+    height: 12px;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, #e6e4dc 0%, #c8c6be 100%);
+    border: 1px solid #aaa8a0;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: top 0.13s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sw-remote .sw-lever.pos-on      { top: 1px; }
+  .sw-remote .sw-lever.pos-neutral { top: 10px; }
+  .sw-remote .sw-lever.pos-off     { top: 19px; }
+
+  /* ══════════════════════════════════
+     ROW 3 — 2×2 dial grid
+  ══════════════════════════════════ */
+  .sep {
+    height: 1px;
+    background: rgba(0,0,0,0.14);
+    border-radius: 1px;
+  }
+
+  .row-dials {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 6px;
+    row-gap: 8px;
+  }
+
+  .dial-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .dial-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .dial-outer {
+    position: relative;
+    width: 72px;
+    height: 72px;
+  }
+
+  .dial-outer canvas {
+    display: block;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .dial-outer canvas:active { cursor: grabbing; }
+
+  .lbl-min, .lbl-max {
+    position: absolute;
+    bottom: 0;
+    font-size: 7px;
+    font-weight: 700;
+    color: #2a2a28;
+    pointer-events: none;
+  }
+  .lbl-min { left: 0; }
+  .lbl-max { right: 0; }
+
+  /* ══════════════════════════════════
+     TOOLTIP PANEL  (left side)
+  ══════════════════════════════════ */
+  .tip-panel {
+    position: absolute;
+    right: calc(100% + 20px);
+    top: 0;
+    width: 240px;
+    background: #f8f7f2;
+    border-radius: 8px;
+    border-right: 3px solid #4a9c42;
+    padding: 15px 16px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+  }
+
+  .tip-panel.visible {
+    opacity: 1;
+  }
+
+  .tip-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #1a1a1a;
+    letter-spacing: 0.3px;
+    margin-bottom: 9px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .tip-body {
+    font-size: 12px;
+    line-height: 1.65;
+    color: #3c3a36;
+  }
+
+  /* ══════════════════════════════════
+     SIMULATION PANEL  (right side)
+  ══════════════════════════════════ */
+  .sim-panel {
+    position: absolute;
+    left: calc(100% + 20px);
+    top: 0;
+    width: 290px;
+    background: #f8f7f2;
+    border-radius: 8px;
+    border-left: 3px solid #4a9c42;
+    padding: 14px 15px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .sim-section-title {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+
+  .sim-canvas-wrap {
+    display: flex;
+    justify-content: center;
+  }
+
+  .sim-clearance {
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 5px;
+    height: 14px;
+    color: #3c3a36;
+  }
+
+  .sim-sep {
+    height: 1px;
+    background: rgba(0,0,0,0.1);
+    margin: 11px 0;
+  }
+
+  /* Cursor hint on hoverable elements */
+  [data-tip] { cursor: default; }
+  [data-tip].sw, [data-tip].sw-remote { cursor: pointer; }
+  canvas[data-tip] { cursor: grab; }
+  canvas[data-tip]:active { cursor: grabbing; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">Oak Creek Ball Machine Controls</div>
+  <div class="page-desc">Interact with the dials and knobs to get a feel for how the Oak Creek ball machine works. Hover over any control to see a description of what it does.</div>
+</div>
+
+<div class="panel-wrap">
+
+  <div class="frame">
+    <div class="screw s-tl"></div>
+    <div class="screw s-t2"></div>
+    <div class="screw s-t3"></div>
+    <div class="screw s-tr"></div>
+    <div class="screw s-bl"></div>
+    <div class="screw s-br"></div>
+
+    <div class="face">
+
+      <!-- ── ROW 1: Toggle switches ── -->
+      <div class="row-toggles">
+
+        <div class="main-toggles">
+          <div class="sw" data-state="neutral" data-tip="left">
+            <span class="sw-name">LEFT</span>
+            <span class="sw-lbl">ON</span>
+            <div class="sw-housing"><div class="sw-lever pos-neutral"></div></div>
+            <span class="sw-lbl">OFF</span>
+          </div>
+          <div class="sw" data-state="neutral" data-tip="center">
+            <span class="sw-name">CENTER</span>
+            <span class="sw-lbl">ON</span>
+            <div class="sw-housing"><div class="sw-lever pos-neutral"></div></div>
+            <span class="sw-lbl">OFF</span>
+          </div>
+          <div class="sw" data-state="neutral" data-tip="right">
+            <span class="sw-name">RIGHT</span>
+            <span class="sw-lbl">ON</span>
+            <div class="sw-housing"><div class="sw-lever pos-neutral"></div></div>
+            <span class="sw-lbl">OFF</span>
+          </div>
+        </div>
+
+        <div class="side-toggle-wrap">
+          <div class="sw" data-state="neutral" data-tip="lcr">
+            <span class="sw-name">L-C-R</span>
+            <div class="sw-housing"><div class="sw-lever pos-neutral"></div></div>
+            <span class="sw-name">R-C-L</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── ROW 2: Court diagram + right controls ── -->
+      <div class="row-middle">
+
+        <div class="court-wrap">
+          <svg viewBox="0 0 100 108" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="4" width="90" height="99"
+                  fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+            <line x1="16" y1="4"   x2="16" y2="103" stroke="#1e1e1e" stroke-width="1.2"/>
+            <line x1="84" y1="4"   x2="84" y2="103" stroke="#1e1e1e" stroke-width="1.2"/>
+            <line x1="16" y1="50"  x2="84" y2="50"  stroke="#1e1e1e" stroke-width="1.2"/>
+            <line x1="50" y1="50"  x2="50" y2="103" stroke="#1e1e1e" stroke-width="1.2"/>
+            <line x1="50" y1="4"   x2="50" y2="8"   stroke="#1e1e1e" stroke-width="1.2"/>
+            <line x1="5"  y1="103" x2="95" y2="103" stroke="#1e1e1e" stroke-width="3.2"/>
+          </svg>
+        </div>
+
+        <div class="right-ctrls">
+
+          <div class="ctrl-block">
+            <div class="ctrl-lbl">SPREAD ANGLE</div>
+            <canvas id="dial-spread" width="64" height="64" data-value="0.5" data-tip="spread"></canvas>
+            <div class="sublabels">
+              <span class="sub">NARROW</span>
+              <span class="sub">WIDE</span>
+            </div>
+          </div>
+
+          <div class="ctrl-block" style="align-items:center;">
+            <div class="ctrl-lbl">REMOTE</div>
+            <div class="sw-remote" data-state="neutral" data-tip="remote">
+              <div class="sw-housing"><div class="sw-lever pos-neutral"></div></div>
+              <span class="sw-lbl" style="font-size:8px;font-weight:800;color:#1a1a1a;">BYPASS</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- ── ROW 3: 2×2 dial grid ── -->
+      <div class="row-dials">
+
+        <div class="dial-cell">
+          <div class="dial-title">HEIGHT</div>
+          <div class="dial-outer">
+            <canvas id="dial-height"   width="72" height="72" data-value="0.25" data-tip="height"></canvas>
+            <span class="lbl-min">VOLLEY</span>
+            <span class="lbl-max">LOB</span>
+          </div>
+        </div>
+
+        <div class="dial-cell">
+          <div class="dial-title">FEED RATE</div>
+          <div class="dial-outer">
+            <canvas id="dial-feedrate" width="72" height="72" data-value="0.25" data-tip="feedrate"></canvas>
+            <span class="lbl-min">SLOW</span>
+            <span class="lbl-max">FAST</span>
+          </div>
+        </div>
+
+        <div class="dial-cell">
+          <div class="dial-title">SPEED</div>
+          <div class="dial-outer">
+            <canvas id="dial-speed"    width="72" height="72" data-value="0.25" data-tip="speed"></canvas>
+            <span class="lbl-min">SLOW</span>
+            <span class="lbl-max">FAST</span>
+          </div>
+        </div>
+
+        <div class="dial-cell">
+          <div class="dial-title">SPIN</div>
+          <div class="dial-outer">
+            <canvas id="dial-spin"     width="72" height="72" data-value="0.5" data-tip="spin"></canvas>
+            <span class="lbl-min">BACK</span>
+            <span class="lbl-max">TOP</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /.face -->
+  </div><!-- /.frame -->
+
+  <!-- Tooltip panel — sits to the left -->
+  <div class="tip-panel" id="tip-panel">
+    <div class="tip-title" id="tip-title"></div>
+    <div class="tip-body"  id="tip-body"></div>
+  </div>
+
+  <!-- Simulation panel — sits to the right -->
+  <div class="sim-panel" id="sim-panel">
+    <div class="sim-section-title">Ball Flight — Side View</div>
+    <div class="sim-canvas-wrap">
+      <canvas id="sim-side" width="260" height="148"></canvas>
+    </div>
+    <div class="sim-clearance" id="sim-clearance"></div>
+    <div class="sim-sep"></div>
+    <div class="sim-section-title">Landing Zone — Top View</div>
+    <div class="sim-canvas-wrap">
+      <canvas id="sim-top" width="156" height="200"></canvas>
+    </div>
+  </div>
+
+</div><!-- /.panel-wrap -->
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════
+   TOGGLE SWITCHES  —  neutral → on → off → neutral
+═══════════════════════════════════════════════════════ */
+const STATES = ['neutral', 'on', 'off'];
+
+function advanceToggle(el) {
+  const cur  = el.dataset.state || 'neutral';
+  const next = STATES[(STATES.indexOf(cur) + 1) % 3];
+  el.dataset.state = next;
+  el.querySelector('.sw-lever').className = 'sw-lever pos-' + next;
+  updateSimulation();
+}
+
+document.querySelectorAll('.sw, .sw-remote').forEach(el => {
+  el.addEventListener('click', () => advanceToggle(el));
+});
+
+
+/* ═══════════════════════════════════════════════════════
+   ROTARY DIALS  —  270° sweep, value ∈ [0, 1]
+═══════════════════════════════════════════════════════ */
+const A_START = (3 * Math.PI) / 4;
+const A_SWEEP = (3 * Math.PI) / 2;
+const N_TICKS = 10;
+
+function drawDial(cvs) {
+  const ctx = cvs.getContext('2d');
+  const S   = cvs.width;
+  const cx  = S / 2, cy = S / 2;
+  const R   = S / 2 - 4;
+  const val = Math.max(0, Math.min(1, parseFloat(cvs.dataset.value) || 0));
+
+  ctx.clearRect(0, 0, S, S);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 6;
+  ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = '#888'; ctx.fill();
+  ctx.restore();
+
+  const g = ctx.createRadialGradient(cx - R*0.28, cy - R*0.28, R*0.06, cx, cy, R);
+  g.addColorStop(0,   '#d4d2c8');
+  g.addColorStop(0.5, '#a8a69e');
+  g.addColorStop(1,   '#6a6860');
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1; ctx.stroke();
+
+  for (let i = 0; i <= N_TICKS; i++) {
+    const frac  = i / N_TICKS;
+    const theta = A_START + frac * A_SWEEP;
+    const isEnd = (i === 0 || i === N_TICKS);
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(theta)*(R-(isEnd?11:7)), cy + Math.sin(theta)*(R-(isEnd?11:7)));
+    ctx.lineTo(cx + Math.cos(theta)*(R-1),            cy + Math.sin(theta)*(R-1));
+    ctx.strokeStyle = '#38382e'; ctx.lineWidth = isEnd ? 2 : 1; ctx.stroke();
+  }
+
+  const theta = A_START + val * A_SWEEP;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(theta)*(R-8), cy + Math.sin(theta)*(R-8));
+  ctx.strokeStyle = '#f2f0ea'; ctx.lineWidth = 2.8; ctx.lineCap = 'round'; ctx.stroke();
+
+  ctx.beginPath(); ctx.arc(cx, cy, 5,   0, Math.PI*2); ctx.fillStyle = '#484844'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 2.8, 0, Math.PI*2);
+  const cg = ctx.createRadialGradient(cx-1, cy-1, 0.5, cx, cy, 2.8);
+  cg.addColorStop(0, '#aaa'); cg.addColorStop(1, '#666');
+  ctx.fillStyle = cg; ctx.fill();
+}
+
+document.querySelectorAll('canvas').forEach(drawDial);
+
+
+/* ═══════════════════════════════════════════════════════
+   DRAG INTERACTION
+═══════════════════════════════════════════════════════ */
+let drag = null;
+
+document.querySelectorAll('canvas').forEach(cvs => {
+  cvs.addEventListener('mousedown', e => {
+    drag = { cvs, y0: e.clientY, v0: parseFloat(cvs.dataset.value || 0) };
+    e.preventDefault();
+  });
+  cvs.addEventListener('touchstart', e => {
+    drag = { cvs, y0: e.touches[0].clientY, v0: parseFloat(cvs.dataset.value || 0) };
+    e.preventDefault();
+  }, { passive: false });
+});
+
+function applyMove(clientY) {
+  if (!drag) return;
+  const val = Math.max(0, Math.min(1, drag.v0 + (drag.y0 - clientY) / 120));
+  drag.cvs.dataset.value = val;
+  drawDial(drag.cvs);
+  updateSimulation();
+}
+
+document.addEventListener('mousemove', e => applyMove(e.clientY));
+document.addEventListener('touchmove', e => { applyMove(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+document.addEventListener('mouseup',   () => { drag = null; });
+document.addEventListener('touchend',  () => { drag = null; });
+
+
+/* ═══════════════════════════════════════════════════════
+   TOOLTIPS
+   First hover: 1-second delay before showing.
+   Moving between controls while panel is visible: instant switch.
+   Leaving a control: 200 ms grace window before hiding.
+═══════════════════════════════════════════════════════ */
+const TIPS = {
+  left: {
+    title: 'Left',
+    body:  'Controls whether the machine feeds balls to the left part of the court. Turn a zone On to include it, Off to skip it. For example, turn Center On and Left and Right Off to keep all feeds down the middle. Turn all three On to cover the whole court.'
+  },
+  center: {
+    title: 'Center',
+    body:  'Controls whether the machine feeds balls to the center of the court. Turn a zone On to include it, Off to skip it. For example, turn Center On and Left and Right Off to keep all feeds down the middle. Turn all three On to cover the whole court.'
+  },
+  right: {
+    title: 'Right',
+    body:  'Controls whether the machine feeds balls to the right part of the court. Turn a zone On to include it, Off to skip it. For example, turn Center On and Left and Right Off to keep all feeds down the middle. Turn all three On to cover the whole court.'
+  },
+  lcr: {
+    title: 'L-C-R / R-C-L',
+    body:  'Sets the order in which the machine feeds across the court. Up feeds Left to Right, down feeds Right to Left.'
+  },
+  spread: {
+    title: 'Spread Angle',
+    body:  'Controls how wide the feeds are spread across the court. Turned to Wide, balls will go all the way out to the sidelines. Turned to Narrow, balls will stay close to the center.'
+  },
+  remote: {
+    title: 'Remote / Bypass',
+    body:  'Remote turns on the handheld remote, useful when a coach or partner is standing at the machine and adjusting settings on the fly. Bypass turns the remote off — set your desired settings, walk to the other side of the court, and the machine will keep feeding balls on its own until they run out.'
+  },
+  height: {
+    title: 'Height',
+    body:  'Controls how high the ball is fed. At 0 (Volley), the ball comes in low, just above net height. At 10 (Lob), the ball is fed high into the air.'
+  },
+  feedrate: {
+    title: 'Feed Rate',
+    body:  'Controls how often the machine feeds a ball. At 0 (Slow), a ball is fed roughly every 10 seconds. At 10 (Fast), multiple balls are fed per second — more useful for group drills than solo practice.'
+  },
+  speed: {
+    title: 'Speed',
+    body:  'Controls how fast the ball travels. At 0 (Slow), the ball is fed softly and will barely clear the net on a low height setting. At 10 (Fast), the ball comes in at around 80 mph.'
+  },
+  spin: {
+    title: 'Spin',
+    body:  "Controls the shape of the ball's flight and how it behaves when it bounces. At 0 (Backspin), the flight is flat and straight, and the ball will skid and slow down on the bounce. At 10 (Topspin), the ball arcs up high and dips down sharply, then kicks up high when it bounces."
+  }
+};
+
+const tipPanel = document.getElementById('tip-panel');
+const tipTitle = document.getElementById('tip-title');
+const tipBody  = document.getElementById('tip-body');
+
+let showTimer = null;
+let hideTimer = null;
+
+function showTip(key) {
+  const t = TIPS[key];
+  if (!t) return;
+  tipTitle.textContent = t.title;
+  tipBody.textContent  = t.body;
+  tipPanel.classList.add('visible');
+}
+
+function hideTip() {
+  tipPanel.classList.remove('visible');
+}
+
+/* ═══════════════════════════════════════════════════════
+   BALL FLIGHT SIMULATION
+═══════════════════════════════════════════════════════ */
+const COURT_LEN   = 23.77;
+const COURT_HALF  = COURT_LEN / 2;
+const NET_H       = 0.914;
+const COURT_W     = 8.23;
+const SERVICE_D   = 6.40;
+
+function getDialVal(id) {
+  const el = document.getElementById(id);
+  return el ? parseFloat(el.dataset.value || 0) : 0;
+}
+
+function getTogState(tip) {
+  const el = document.querySelector(`[data-tip="${tip}"]`);
+  return el ? el.dataset.state : 'neutral';
+}
+
+function arcColor(speedVal) {
+  const hue = Math.round(120 * (1 - speedVal));
+  return `hsl(${hue}, 88%, 42%)`;
+}
+
+function computeTraj(speedVal, heightVal, spinVal) {
+  const v          = 15 + speedVal * 20;
+  const angle      = (8 + heightVal * 47) * Math.PI / 180;
+  const spinFactor = (spinVal - 0.5) * 2;
+  const gEff       = 9.81 + spinFactor * 3.5;
+  const vx = v * Math.cos(angle);
+  const vy = v * Math.sin(angle);
+  const y0 = 0.35;
+
+  const pts = [];
+  const dt  = 0.015;
+  let t = 0, landX = null, landVy = null;
+
+  while (t < 6) {
+    const x = vx * t;
+    const y = y0 + vy * t - 0.5 * gEff * t * t;
+    if (y <= 0 && t > 0) {
+      const pt = t - dt;
+      const py = y0 + vy * pt - 0.5 * gEff * pt * pt;
+      const f  = py / (py - y);
+      landX  = vx * (pt + f * dt);
+      landVy = vy - gEff * (pt + f * dt);
+      pts.push({ x: landX, y: 0 });
+      break;
+    }
+    pts.push({ x, y });
+    t += dt;
+  }
+
+  const bouncePts = [];
+  if (landX !== null) {
+    const impactSpd   = Math.sqrt(vx * vx + landVy * landVy);
+    const spinFactor2 = (spinVal - 0.5) * 2;
+    const bAngle = (20 + spinFactor2 * 15) * Math.PI / 180;
+    const bv     = impactSpd * 0.62;
+    const bvx    = bv * Math.cos(bAngle);
+    const bvy    = bv * Math.sin(bAngle);
+    let bt = 0;
+    while (bt < 4) {
+      const bx = landX + bvx * bt;
+      const by = bvy * bt - 0.5 * 9.81 * bt * bt;
+      if (by < 0 && bt > 0) break;
+      bouncePts.push({ x: bx, y: by });
+      bt += 0.015;
+    }
+  }
+
+  return { pts, bouncePts, landX };
+}
+
+function drawSideView(speedVal, heightVal, spinVal) {
+  const cvs = document.getElementById('sim-side');
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#e8e6de';
+  ctx.fillRect(0, 0, W, H);
+
+  const PL = 14, PR = 10, PT = 12, PB = 24;
+  const dW = W - PL - PR, dH = H - PT - PB;
+  const maxDispH = 11;
+  const ppmX = dW / COURT_LEN;
+  const ppmY = dH / maxDispH;
+
+  function tc(mx, my) {
+    return { x: PL + mx * ppmX, y: H - PB - my * ppmY };
+  }
+
+  const gY = tc(0, 0).y;
+
+  // court surface
+  ctx.fillStyle = '#c8cfc0';
+  ctx.fillRect(PL, gY, dW, 2);
+
+  // net
+  const nX = tc(COURT_HALF, 0).x;
+  const nTop = tc(COURT_HALF, NET_H).y;
+  ctx.beginPath();
+  ctx.moveTo(nX, gY);
+  ctx.lineTo(nX, nTop);
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 2]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // baselines
+  [0, COURT_LEN].forEach(mx => {
+    const bx = tc(mx, 0).x;
+    ctx.beginPath();
+    ctx.moveTo(bx, gY - 4);
+    ctx.lineTo(bx, gY + 2);
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // machine icon
+  const mBase = tc(0, 0);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.beginPath();
+  ctx.moveTo(mBase.x - 5, mBase.y - 2);
+  ctx.lineTo(mBase.x + 5, mBase.y - 2);
+  ctx.lineTo(mBase.x + 5, mBase.y - 8);
+  ctx.lineTo(mBase.x + 9, mBase.y - 8);
+  ctx.lineTo(mBase.x,     mBase.y - 14);
+  ctx.lineTo(mBase.x - 9, mBase.y - 8);
+  ctx.lineTo(mBase.x - 5, mBase.y - 8);
+  ctx.closePath();
+  ctx.fill();
+
+  const { pts, bouncePts, landX } = computeTraj(speedVal, heightVal, spinVal);
+  const color = arcColor(speedVal);
+
+  // net clearance
+  let clearance = null;
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (pts[i].x <= COURT_HALF && pts[i + 1].x >= COURT_HALF) {
+      const f = (COURT_HALF - pts[i].x) / (pts[i + 1].x - pts[i].x);
+      clearance = pts[i].y + f * (pts[i + 1].y - pts[i].y) - NET_H;
+      break;
+    }
+  }
+
+  // flight arc
+  if (pts.length > 1) {
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const cp = tc(p.x, p.y);
+      i === 0 ? ctx.moveTo(cp.x, cp.y) : ctx.lineTo(cp.x, cp.y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  // bounce arc
+  if (bouncePts.length > 1) {
+    ctx.beginPath();
+    bouncePts.forEach((p, i) => {
+      const cp = tc(p.x, p.y);
+      i === 0 ? ctx.moveTo(cp.x, cp.y) : ctx.lineTo(cp.x, cp.y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.globalAlpha = 0.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // landing dot
+  if (landX !== null) {
+    const lp = tc(landX, 0);
+    ctx.beginPath();
+    ctx.arc(lp.x, lp.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  // labels
+  ctx.fillStyle = '#888';
+  ctx.font = 'bold 8px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('MACHINE', tc(0, 0).x, H - 6);
+  ctx.fillText('NET', nX, H - 6);
+  ctx.fillText('BASELINE', tc(COURT_LEN, 0).x, H - 6);
+
+  // clearance readout
+  const clEl = document.getElementById('sim-clearance');
+  if (clearance === null) {
+    clEl.textContent = '';
+    clEl.style.color = '#888';
+  } else if (clearance < 0) {
+    clEl.textContent = `Clips net by ${Math.abs(clearance * 100).toFixed(0)} cm`;
+    clEl.style.color = '#c0392b';
+  } else {
+    clEl.textContent = `${(clearance * 100).toFixed(0)} cm clearance over net`;
+    clEl.style.color = '#2a6e2a';
+  }
+}
+
+function drawTopView(spreadVal) {
+  const cvs = document.getElementById('sim-top');
+  const ctx = cvs.getContext('2d');
+  const W = cvs.width, H = cvs.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#e8e6de';
+  ctx.fillRect(0, 0, W, H);
+
+  const PAD = 10;
+  const cW  = W - PAD * 2;
+  const cH  = H - PAD * 2 - 10;
+  const ppmX = cW / COURT_W;
+  const ppmY = cH / COURT_HALF;
+  const cx0  = PAD, cy0 = PAD + 10;
+
+  function tt(mx, my) {
+    return { x: cx0 + mx * ppmX, y: cy0 + my * ppmY };
+  }
+
+  // court surface
+  ctx.fillStyle = '#c8cfc0';
+  ctx.fillRect(cx0, cy0, cW, cH);
+
+  // court outline
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(cx0, cy0, cW, cH);
+
+  // service line
+  const slY = tt(0, SERVICE_D).y;
+  ctx.beginPath();
+  ctx.moveTo(cx0, slY);
+  ctx.lineTo(cx0 + cW, slY);
+  ctx.strokeStyle = '#777';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
+  // center service line
+  const midX = tt(COURT_W / 2, 0).x;
+  ctx.beginPath();
+  ctx.moveTo(midX, cy0);
+  ctx.lineTo(midX, slY);
+  ctx.stroke();
+
+  // net label
+  ctx.fillStyle = '#777';
+  ctx.font = 'bold 8px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('NET', W / 2, cy0 - 2);
+
+  // zone logic — neutral means unset, treat same as all-on
+  const leftOn   = getTogState('left')   === 'on';
+  const centerOn = getTogState('center') === 'on';
+  const rightOn  = getTogState('right')  === 'on';
+  const anyOn    = leftOn || centerOn || rightOn;
+
+  const zoneCenters = [];
+  if (!anyOn) {
+    zoneCenters.push(COURT_W / 2);
+  } else {
+    if (leftOn)   zoneCenters.push(COURT_W * 0.17);
+    if (centerOn) zoneCenters.push(COURT_W * 0.50);
+    if (rightOn)  zoneCenters.push(COURT_W * 0.83);
+  }
+
+  const spreadHalf = (0.4 + spreadVal * (COURT_W * 0.5 - 0.4));
+  let xMin = Infinity, xMax = -Infinity;
+  zoneCenters.forEach(zc => {
+    xMin = Math.min(xMin, zc - spreadHalf);
+    xMax = Math.max(xMax, zc + spreadHalf);
+  });
+  xMin = Math.max(0, xMin);
+  xMax = Math.min(COURT_W, xMax);
+
+  const zoneYMin = 3.0, zoneYMax = COURT_HALF - 0.6;
+  const zx = tt(xMin, zoneYMin).x;
+  const zy = tt(xMin, zoneYMin).y;
+  const zw = (xMax - xMin) * ppmX;
+  const zh = (zoneYMax - zoneYMin) * ppmY;
+
+  ctx.fillStyle = 'rgba(74,156,66,0.28)';
+  ctx.fillRect(zx, zy, zw, zh);
+  ctx.strokeStyle = 'rgba(74,156,66,0.75)';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(zx, zy, zw, zh);
+
+  // baseline label
+  ctx.fillStyle = '#888';
+  ctx.font = 'bold 7px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('BASELINE', W / 2, cy0 + cH + 9);
+}
+
+function updateSimulation() {
+  const speedVal  = getDialVal('dial-speed');
+  const heightVal = getDialVal('dial-height');
+  const spinVal   = getDialVal('dial-spin');
+  const spreadVal = getDialVal('dial-spread');
+  drawSideView(speedVal, heightVal, spinVal);
+  drawTopView(spreadVal);
+}
+
+updateSimulation();
+
+
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    if (drag) return;                 // skip while dragging a dial
+    clearTimeout(hideTimer);
+    if (tipPanel.classList.contains('visible')) {
+      // Panel already open — update immediately
+      clearTimeout(showTimer);
+      showTip(el.dataset.tip);
+    } else {
+      showTimer = setTimeout(() => showTip(el.dataset.tip), 1000);
+    }
+  });
+
+  el.addEventListener('mouseleave', () => {
+    clearTimeout(showTimer);
+    hideTimer = setTimeout(hideTip, 200);
+  });
+});
+</script>
+</body>
+</html>
