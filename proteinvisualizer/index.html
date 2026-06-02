@@ -270,7 +270,7 @@
 
 <header>
   <h1>Protein Visualizer</h1>
-  <p>See how much of a food you'd actually need to eat to get 10g of protein. When searching for foods, be specific! For example, if you are searching for almonds, type in 'Almond nut'. If you are searching for milk, specify what % fat, or if it is not cow's milk. </p>
+  <p>See how much of a food you'd actually need to eat to get 10g of protein.</p>
 </header>
 
 <div class="search-row">
@@ -298,7 +298,7 @@
 
 <script>
 const API_BASE = 'https://api.nal.usda.gov/fdc/v1';
-const API_KEY = 'JIg4qgq4oZhrIiGg9DdmonWnBKIt60vIo6yMOjFl';
+const API_KEY = 'DEMO_KEY';
 const PROTEIN_GOAL = 10; // grams
 
 // Human-readable quantity descriptions for common foods (keyword → per-serving label)
@@ -330,6 +330,24 @@ function pluralize(n, word) {
   return n === 1 ? `1 ${word}` : `${n} ${word}s`;
 }
 
+function rankResults(results, query) {
+  const q = query.toLowerCase().trim();
+  return results.sort((a, b) => {
+    const aDesc = a.description.toLowerCase();
+    const bDesc = b.description.toLowerCase();
+    if (aDesc === q && bDesc !== q) return -1;
+    if (bDesc === q && aDesc !== q) return 1;
+    if (aDesc.startsWith(q) && !bDesc.startsWith(q)) return -1;
+    if (bDesc.startsWith(q) && !aDesc.startsWith(q)) return 1;
+    const queryWords = q.split(' ');
+    const aHasAll = queryWords.every(w => aDesc.includes(w));
+    const bHasAll = queryWords.every(w => bDesc.includes(w));
+    if (aHasAll && !bHasAll) return -1;
+    if (bHasAll && !aHasAll) return 1;
+    return aDesc.length - bDesc.length;
+  });
+}
+
 async function searchFood(query, attempt = 0) {
   const url = `${API_BASE}/foods/search?query=${encodeURIComponent(query)}&api_key=${API_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy`;
   const res = await fetch(url);
@@ -343,7 +361,7 @@ async function searchFood(query, attempt = 0) {
   if (!res.ok) throw new Error(`Food database error (${res.status}). Try again shortly.`);
   const data = await res.json();
   if (!data.foods || data.foods.length === 0) throw new Error(`No results found for "${query}" — try a simpler name.`);
-  return data.foods[0];
+  return rankResults(data.foods, query)[0];
 }
 
 function extractProtein(food) {
