@@ -348,6 +348,23 @@ function rankResults(results, query) {
   });
 }
 
+async function fetchByNdb(ndbNumber, attempt = 0) {
+  const url = `${API_BASE}/foods/search?query=${ndbNumber}&api_key=${API_KEY}&pageSize=50&dataType=SR%20Legacy`;
+  const res = await fetch(url);
+  if (res.status === 429) {
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      return fetchByNdb(ndbNumber, attempt + 1);
+    }
+    throw new Error('The food database is temporarily rate-limited. Wait a moment and try again.');
+  }
+  if (!res.ok) throw new Error(`Food database error (${res.status}). Try again shortly.`);
+  const data = await res.json();
+  const match = (data.foods || []).find(f => String(f.ndbNumber) === String(ndbNumber));
+  if (!match) throw new Error(`Could not find food with NDB number ${ndbNumber}.`);
+  return match;
+}
+
 async function searchFood(query, attempt = 0) {
   const url = `${API_BASE}/foods/search?query=${encodeURIComponent(query)}&api_key=${API_KEY}&pageSize=10&dataType=Foundation,SR%20Legacy`;
   const res = await fetch(url);
@@ -530,7 +547,7 @@ async function run() {
   if (!q1 && q2) { q1 = q2; q2 = ''; }
   if (q1 && !q2) {
     const isAlmonds = q1.toLowerCase().includes('almond');
-    q2 = isAlmonds ? 'Greek yogurt' : 'almonds';
+    q2 = isAlmonds ? '__NDB_1314__' : 'almonds';
   }
 
   btn.disabled = true;
@@ -541,7 +558,8 @@ async function run() {
   platesRow.innerHTML = '';
 
   try {
-    const [food1, food2] = await Promise.all([searchFood(q1), searchFood(q2)]);
+    const fetchFood = q => q === '__NDB_1314__' ? fetchByNdb(1314) : searchFood(q);
+    const [food1, food2] = await Promise.all([fetchFood(q1), fetchFood(q2)]);
 
     const p1per100 = extractProtein(food1);
     const p2per100 = extractProtein(food2);
