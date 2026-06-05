@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Availability Calendar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: #f8fafc; }
+    #root { height: 100%; }
+    .cal-cell { min-height: 90px; }
+    .chip-text { font-size: 11px; line-height: 1.2; }
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .owner-scrollbar::-webkit-scrollbar { width: 4px; }
+    .owner-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+    .modal-enter { animation: fadeIn .15s ease; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+const {
+  useState, useEffect, useReducer, useContext, createContext,
+  useRef, useMemo, useCallback
+} = React;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const YEAR = new Date().getFullYear();
+const EMOJIS = [
+  '✈️','🏖️','🏔️','🏕️','🚗','🚂','🚢','🏨','🎭','🍽️',
+  '⛷️','🏄','🎪','🌴','🗺️','🎒','🏟️','🌊','🏞️','🎡',
+  '🧳','🌏','🎯','🏋️','🎸','🎨','📸','🍕','🎬','🌺',
+];
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
+const uuid = () => crypto.randomUUID();
+
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getMonthGrid(year, month) {
+  const cells = [];
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Trailing days from previous month
+  for (let i = 0; i < firstDay; i++) {
+    cells.push({ dateStr: toDateStr(new Date(year, month, -(firstDay - 1 - i))), isCurrentMonth: false });
+  }
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ dateStr: toDateStr(new Date(year, month, d)), isCurrentMonth: true });
+  }
+  // Leading days from next month
+  let next = 1;
+  while (cells.length < 42) {
+    cells.push({ dateStr: toDateStr(new Date(year, month + 1, next++)), isCurrentMonth: false });
+  }
+  return cells;
+}
+
+function daysBetween(start, end) {
+  if (!start || !end) return 0;
+  const s = new Date(start + 'T12:00:00');
+  const e = new Date(end + 'T12:00:00');
+  return Math.max(1, Math.round((e - s) / 86400000) + 1);
+}
+
+function displayDate(dateStr) {
+  if (!dateStr) return '';
+  const [, m, d] = dateStr.split('-');
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+
+function displayDateRange(start, end) {
+  if (!start) return '';
+  if (!end || start === end) return displayDateFull(start);
+  return `${displayDateFull(start)} → ${displayDateFull(end)}`;
+}
+
+function displayDateFull(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${MONTHS[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
+}
+
+function isInRange(dateStr, startDate, endDate) {
+  return dateStr >= startDate && dateStr <= (endDate || startDate);
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+
+function load(key, def) {
+  try {
+    const v = localStorage.getItem(key);
+    return v !== null ? JSON.parse(v) : def;
+  } catch { return def; }
+}
+
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+// ─── Reducer ──────────────────────────────────────────────────────────────────
+
+const initState = {
+  events:    load('cal_events',    []),
+  comments:  load('cal_comments',  []),
+  tripIdeas: load('cal_trip_ideas',[]),
+  pto:       load('cal_pto',       { totalDays: 0, lastTripStart: '', lastTripEnd: '' }),
+  notes:     load('cal_notes',     ''),
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'ADD_EVENT':
+      return { ...state, events: [...state.events, action.event] };
+    case 'UPDATE_EVENT':
+      return { ...state, events: state.events.map(e => e.id === action.event.id ? action.event : e) };
+    case 'DELETE_EVENT':
+      return { ...state, events: state.events.filter(e => e.id !== action.id) };
+    case 'ADD_COMMENT':
+      return { ...state, comments: [...state.comments, action.comment] };
+    case 'DELETE_COMMENT':
+      return { ...state, comments: state.comments.filter(c => c.id !== action.id) };
+    case 'ADD_TRIP_IDEA':
+      return { ...state, tripIdeas: [...state.tripIdeas, action.idea], events: [...state.events, action.event] };
+    case 'REMOVE_TRIP_IDEA': {
+      const idea = state.tripIdeas.find(t => t.id === action.id);
+      return {
+        ...state,
+        tripIdeas: state.tripIdeas.filter(t => t.id !== action.id),
+        events: state.events.filter(e => e.id !== (idea && idea.eventId)),
+      };
+    }
+    case 'CONFIRM_TRIP':
+      return { ...state, events: state.events.map(e => e.id === action.eventId ? { ...e, type: 'confirmed' } : e) };
+    case 'UPDATE_PTO':
+      return { ...state, pto: action.pto };
+    case 'UPDATE_NOTES':
+      return { ...state, notes: action.notes };
+    default:
+      return state;
+  }
+}
+
+// ─── Contexts ─────────────────────────────────────────────────────────────────
+
+const DataCtx = createContext();
+const AuthCtx = createContext();
+
+// ─── Shared: EmojiPicker ──────────────────────────────────────────────────────
+
+function EmojiPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="w-11 h-10 text-xl border-2 border-slate-200 rounded-lg hover:border-blue-400 flex items-center justify-center transition-colors">
+        {value}
+      </button>
+      {open && (
+        <div className="absolute z-20 top-12 left-0 bg-white border border-slate-200 rounded-xl shadow-xl p-2 grid grid-cols-6 gap-1 w-52">
+          {EMOJIS.map(e => (
+            <button key={e} type="button"
+              onClick={() => { onChange(e); setOpen(false); }}
+              className={`text-xl w-8 h-8 rounded flex items-center justify-center hover:bg-slate-100 ${value === e ? 'bg-blue-100' : ''}`}>
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Left Panel ───────────────────────────────────────────────────────────────
+
+function OwnerAuth({ onAuth }) {
+  const [pin, setPin] = useState('');
+  const [err, setErr] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  const attempt = () => {
+    const stored = load('cal_pin', '1234');
+    if (pin === stored) { onAuth(); }
+    else {
+      setErr(true); setShake(true); setPin('');
+      setTimeout(() => { setErr(false); setShake(false); }, 1500);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-5 px-6 py-10">
+      <div className="w-16 h-16 rounded-2xl bg-slate-700 flex items-center justify-center text-3xl shadow-inner">🔒</div>
+      <div className="text-center">
+        <p className="text-slate-200 font-semibold">Owner Access</p>
+        <p className="text-slate-400 text-xs mt-1">Enter your PIN to manage events</p>
+      </div>
+      <input
+        type="password"
+        value={pin}
+        onChange={e => setPin(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && attempt()}
+        placeholder="PIN"
+        className={`w-36 text-center border-2 rounded-xl px-4 py-2.5 text-lg tracking-[0.3em] bg-slate-700 text-white placeholder-slate-500 outline-none transition-all
+          ${err ? 'border-red-500' : 'border-slate-600 focus:border-blue-400'}
+          ${shake ? 'animate-bounce' : ''}`}
+      />
+      {err && <p className="text-red-400 text-xs -mt-2">Incorrect PIN</p>}
+      <button onClick={attempt}
+        className="w-36 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition-colors shadow-md">
+        Unlock
+      </button>
+      <p className="text-slate-500 text-xs">Default PIN: 1234</p>
+    </div>
+  );
+}
+
+function PTOTracker() {
+  const { state, dispatch } = useContext(DataCtx);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ ...state.pto });
+
+  useEffect(() => { setDraft({ ...state.pto }); }, [state.pto]);
+
+  const save = () => {
+    dispatch({ type: 'UPDATE_PTO', pto: draft });
+    setEditing(false);
+  };
+
+  const { totalDays, lastTripStart, lastTripEnd } = state.pto;
+  const tripDays = lastTripStart && lastTripEnd ? daysBetween(lastTripStart, lastTripEnd) : null;
+
+  if (editing) return (
+    <div className="bg-slate-700 rounded-2xl p-4 space-y-3">
+      <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">PTO Tracker</p>
+      <div>
+        <label className="text-xs text-slate-400">Total PTO Days Taken</label>
+        <input type="number" min="0" value={draft.totalDays}
+          onChange={e => setDraft(d => ({ ...d, totalDays: parseInt(e.target.value) || 0 }))}
+          className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white mt-1 outline-none focus:border-blue-400" />
+      </div>
+      <div>
+        <label className="text-xs text-slate-400">Last Trip Start</label>
+        <input type="date" value={draft.lastTripStart}
+          onChange={e => setDraft(d => ({ ...d, lastTripStart: e.target.value }))}
+          className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white mt-1 outline-none focus:border-blue-400" />
+      </div>
+      <div>
+        <label className="text-xs text-slate-400">Last Trip End</label>
+        <input type="date" value={draft.lastTripEnd} min={draft.lastTripStart}
+          onChange={e => setDraft(d => ({ ...d, lastTripEnd: e.target.value }))}
+          className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white mt-1 outline-none focus:border-blue-400" />
+      </div>
+      <div className="flex gap-2">
+        <button onClick={save} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-2 text-sm font-semibold">Save</button>
+        <button onClick={() => { setDraft({ ...state.pto }); setEditing(false); }}
+          className="flex-1 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-xl py-2 text-sm">Cancel</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="bg-slate-700 rounded-2xl p-4">
+      <div className="flex justify-between items-center mb-3">
+        <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">PTO Tracker</p>
+        <button onClick={() => setEditing(true)} className="text-xs text-slate-400 hover:text-blue-300 transition-colors">Edit</button>
+      </div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="text-4xl font-black text-white">{totalDays}</span>
+        <span className="text-sm text-slate-400">days taken this year</span>
+      </div>
+      {lastTripStart && lastTripEnd ? (
+        <div className="bg-slate-600/50 rounded-xl px-3 py-2">
+          <p className="text-xs text-slate-400">Last Trip</p>
+          <p className="text-sm text-slate-200 font-medium">
+            {displayDate(lastTripStart)} – {displayDate(lastTripEnd)}
+            <span className="ml-2 text-blue-400 font-semibold">({tripDays} {tripDays === 1 ? 'day' : 'days'})</span>
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-500 italic">No trip recorded yet</p>
+      )}
+    </div>
+  );
+}
+
+function OwnerNotes() {
+  const { state, dispatch } = useContext(DataCtx);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(state.notes);
+
+  const save = () => {
+    dispatch({ type: 'UPDATE_NOTES', notes: draft });
+    setEditing(false);
+  };
+
+  const cancel = () => {
+    setDraft(state.notes);
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex justify-between items-center mb-2">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Notes & Availability</p>
+        {editing
+          ? <div className="flex gap-3">
+              <button onClick={save} className="text-xs text-blue-400 hover:text-blue-300">Save</button>
+              <button onClick={cancel} className="text-xs text-slate-500 hover:text-slate-400">Cancel</button>
+            </div>
+          : <button onClick={() => { setDraft(state.notes); setEditing(true); }}
+              className="text-xs text-slate-400 hover:text-blue-300 transition-colors">Edit</button>
+        }
+      </div>
+      {editing ? (
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          autoFocus
+          className="flex-1 w-full bg-slate-700 border border-slate-600 focus:border-blue-500 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 resize-none outline-none min-h-32"
+          placeholder="Jot down upcoming plans, open weekends, or availability windows..."
+        />
+      ) : state.notes ? (
+        <div className="flex-1 bg-slate-700/50 rounded-xl p-3 text-sm text-slate-300 whitespace-pre-wrap overflow-y-auto scrollbar-thin min-h-32">
+          {state.notes}
+        </div>
+      ) : (
+        <div className="flex-1 bg-slate-700/30 rounded-xl p-3 text-sm text-slate-500 italic flex items-start min-h-32">
+          No notes yet — click Edit to add upcoming plans or open availability windows.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChangePIN() {
+  const [open, setOpen] = useState(false);
+  const [cur, setCur] = useState('');
+  const [next, setNext] = useState('');
+  const [msg, setMsg] = useState('');
+  const [ok, setOk] = useState(false);
+
+  const submit = () => {
+    const stored = load('cal_pin', '1234');
+    if (cur !== stored) { setMsg('Current PIN is incorrect'); return; }
+    if (next.length < 4) { setMsg('New PIN must be ≥ 4 characters'); return; }
+    save('cal_pin', next);
+    setMsg('PIN updated!'); setOk(true);
+    setTimeout(() => { setOpen(false); setCur(''); setNext(''); setMsg(''); setOk(false); }, 1200);
+  };
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="text-xs text-slate-500 hover:text-slate-300 underline underline-offset-2 transition-colors">
+      Change PIN
+    </button>
+  );
+
+  return (
+    <div className="bg-slate-700 rounded-2xl p-4 space-y-2">
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Change PIN</p>
+      <input type="password" value={cur} onChange={e => setCur(e.target.value)} placeholder="Current PIN"
+        className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-400" />
+      <input type="password" value={next} onChange={e => setNext(e.target.value)} placeholder="New PIN (min 4 chars)"
+        className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-400" />
+      {msg && <p className={`text-xs ${ok ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
+      <div className="flex gap-2">
+        <button onClick={submit} className="flex-1 bg-slate-500 hover:bg-slate-400 text-white rounded-xl py-2 text-sm font-medium">Save</button>
+        <button onClick={() => { setOpen(false); setCur(''); setNext(''); setMsg(''); }}
+          className="flex-1 bg-transparent border border-slate-600 text-slate-400 rounded-xl py-2 text-sm">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function LeftPanel() {
+  const { isOwner, setOwner } = useContext(AuthCtx);
+
+  return (
+    <div className="h-full bg-slate-800 flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 px-5 py-4 border-b border-slate-700 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-slate-200">Owner Panel</h2>
+          <p className="text-xs text-slate-500">Private — password protected</p>
+        </div>
+        {isOwner && (
+          <button onClick={() => setOwner(false)}
+            className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg transition-colors">
+            Lock
+          </button>
+        )}
+      </div>
+
+      {!isOwner ? (
+        <OwnerAuth onAuth={() => setOwner(true)} />
+      ) : (
+        <div className="flex-1 overflow-y-auto owner-scrollbar p-4 flex flex-col gap-4">
+          <PTOTracker />
+          <OwnerNotes />
+          <div className="flex-shrink-0">
+            <ChangePIN />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+
+function EventModal({ event, onClose, onEdit, onDelete }) {
+  const { state } = useContext(DataCtx);
+  const { isOwner } = useContext(AuthCtx);
+  const ref = useRef();
+  const commentCount = state.comments.filter(c => c.eventId === event.id).length;
+
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const isMultiDay = event.startDate !== event.endDate;
+  const confirmed = event.type === 'confirmed';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <div ref={ref} className="modal-enter bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div className={`px-5 pt-5 pb-4 ${confirmed ? 'bg-gradient-to-br from-blue-600 to-blue-700' : 'bg-gradient-to-br from-slate-500 to-slate-600'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <span className="text-3xl flex-shrink-0 mt-0.5">{event.icon}</span>
+              <div className="min-w-0">
+                <h3 className="text-white font-bold text-lg leading-snug">{event.title}</h3>
+                <p className="text-white/75 text-xs mt-0.5">
+                  {isMultiDay
+                    ? `${displayDateFull(event.startDate)} → ${displayDateFull(event.endDate)}`
+                    : displayDateFull(event.startDate)
+                  }
+                </p>
+                {isMultiDay && (
+                  <p className="text-white/60 text-xs">{daysBetween(event.startDate, event.endDate)} days</p>
+                )}
+              </div>
+            </div>
+            <button onClick={onClose}
+              className="flex-shrink-0 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg leading-none transition-colors">
+              ×
+            </button>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold
+              ${confirmed ? 'bg-blue-500/60 text-white' : 'bg-white/20 text-white/90'}`}>
+              {confirmed ? '✓ Confirmed' : '~ Tentative'}
+            </span>
+            {event.source === 'guest' && (
+              <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-amber-400/80 text-amber-900">
+                Guest Idea
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="px-5 py-4 space-y-3">
+          {event.description ? (
+            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{event.description}</p>
+          ) : (
+            <p className="text-sm text-slate-400 italic">No description provided.</p>
+          )}
+          {commentCount > 0 && (
+            <p className="text-xs text-slate-400 flex items-center gap-1">
+              <span>💬</span>
+              {commentCount} {commentCount === 1 ? 'comment' : 'comments'} in guest panel
+            </p>
+          )}
+          {isOwner && (
+            <div className="flex gap-2 pt-2 border-t border-slate-100">
+              <button onClick={onEdit}
+                className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl py-2 text-sm font-semibold transition-colors">
+                ✏️ Edit
+              </button>
+              <button onClick={onDelete}
+                className="flex-1 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl py-2 text-sm font-semibold transition-colors">
+                🗑 Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventForm({ title, initial, onSave, onCancel }) {
+  const [form, setForm] = useState(() => ({
+    icon: '✈️',
+    title: '',
+    startDate: '',
+    endDate: '',
+    description: '',
+    type: 'confirmed',
+    ...initial,
+  }));
+
+  const set = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
+
+  const submit = e => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.startDate) return;
+    onSave({ ...form, endDate: form.endDate || form.startDate });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <form onSubmit={submit} className="modal-enter bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden max-h-screen overflow-y-auto">
+        <div className="px-5 py-4 bg-gradient-to-r from-slate-700 to-slate-800 flex justify-between items-center">
+          <h3 className="text-white font-bold">{title}</h3>
+          <button type="button" onClick={onCancel}
+            className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg leading-none">×</button>
+        </div>
+
+        <div className="px-5 py-5 space-y-4">
+          {/* Icon + Title */}
+          <div className="flex gap-3 items-end">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">Icon</label>
+              <EmojiPicker value={form.icon} onChange={v => set('icon', v)} />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">Title <span className="text-red-400">*</span></label>
+              <input value={form.title} onChange={e => set('title', e.target.value)} required
+                placeholder="Trip name..."
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">Start Date <span className="text-red-400">*</span></label>
+              <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)} required
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 transition-all" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">End Date</label>
+              <input type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)} min={form.startDate}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 transition-all" />
+            </div>
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 block mb-1.5">Status</label>
+            <div className="flex gap-2">
+              {[['confirmed','✓ Confirmed','border-blue-500 bg-blue-50 text-blue-700','border-slate-200 text-slate-400'],
+                ['tentative','~ Tentative','border-slate-400 bg-slate-50 text-slate-600','border-slate-200 text-slate-400']
+              ].map(([val, label, activeClass, inactiveClass]) => (
+                <button key={val} type="button" onClick={() => set('type', val)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all
+                    ${form.type === val ? activeClass : inactiveClass + ' hover:border-slate-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 block mb-1.5">Description</label>
+            <textarea value={form.description} onChange={e => set('description', e.target.value)}
+              placeholder="Flight info, lodging, itinerary details..."
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm resize-none outline-none focus:border-blue-400 transition-all h-24" />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-bold transition-colors shadow-md">
+              Save Event
+            </button>
+            <button type="button" onClick={onCancel}
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl py-3 text-sm font-semibold transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EventChip({ event, dateStr, onClick }) {
+  const isMulti = event.startDate !== event.endDate;
+  const isStart = event.startDate === dateStr;
+  const isEnd = event.endDate === dateStr;
+
+  const baseClass = 'chip-text flex items-center gap-0.5 px-1.5 py-0.5 cursor-pointer select-none transition-opacity hover:opacity-80 overflow-hidden';
+
+  let colorClass;
+  if (event.type === 'confirmed') {
+    colorClass = 'bg-blue-500 text-white font-medium';
+  } else if (event.source === 'guest') {
+    colorClass = 'bg-amber-100 text-amber-800 border border-amber-300 italic';
+  } else {
+    colorClass = 'bg-slate-200 text-slate-500 border border-slate-300 italic';
+  }
+
+  let radiusClass = 'rounded';
+  if (isMulti) {
+    if (isStart && isEnd) radiusClass = 'rounded';
+    else if (isStart) radiusClass = 'rounded-r-none rounded-l';
+    else if (isEnd)   radiusClass = 'rounded-l-none rounded-r';
+    else              radiusClass = 'rounded-none';
+  }
+
+  return (
+    <div onClick={e => { e.stopPropagation(); onClick(event); }}
+      className={`${baseClass} ${colorClass} ${radiusClass}`}>
+      {(isStart || !isMulti) && (
+        <>
+          <span className="text-xs leading-none flex-shrink-0">{event.icon}</span>
+          <span className="truncate">{event.title}</span>
+        </>
+      )}
+      {isMulti && !isStart && (
+        <span className="w-full">&nbsp;</span>
+      )}
+    </div>
+  );
+}
+
+function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, today }) {
+  const dayNum = parseInt(dateStr.split('-')[2]);
+  const isToday = dateStr === today;
+
+  return (
+    <div
+      onClick={() => isCurrentMonth && onCellClick(dateStr)}
+      className={`cal-cell border-r border-b border-slate-100 p-1.5 flex flex-col overflow-hidden transition-colors
+        ${!isCurrentMonth ? 'bg-slate-50/40' : 'cursor-pointer hover:bg-blue-50/50'}
+      `}
+    >
+      <div className={`text-xs w-6 h-6 flex items-center justify-center rounded-full font-semibold mb-1 flex-shrink-0
+        ${isToday
+          ? 'bg-blue-600 text-white shadow-sm'
+          : isCurrentMonth
+            ? 'text-slate-600'
+            : 'text-slate-300'}
+      `}>
+        {dayNum}
+      </div>
+      <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
+        {events.map(ev => (
+          <EventChip key={ev.id + '-' + dateStr} event={ev} dateStr={dateStr} onClick={onEventClick} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CalendarWidget() {
+  const { state, dispatch } = useContext(DataCtx);
+  const { isOwner } = useContext(AuthCtx);
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [viewEvent, setViewEvent] = useState(null);
+  const [editEvent, setEditEvent] = useState(null);
+  const [addDate, setAddDate] = useState(null);
+  const today = toDateStr(new Date());
+
+  const grid = useMemo(() => getMonthGrid(YEAR, month), [month]);
+
+  const getEventsForDate = useCallback((dateStr) =>
+    state.events.filter(ev => isInRange(dateStr, ev.startDate, ev.endDate)),
+    [state.events]
+  );
+
+  const handleAddSave = form => {
+    dispatch({
+      type: 'ADD_EVENT',
+      event: { id: uuid(), ...form, source: 'owner', tripIdeaId: null },
+    });
+    setAddDate(null);
+  };
+
+  const handleEditSave = form => {
+    dispatch({ type: 'UPDATE_EVENT', event: { ...viewEvent, ...form } });
+    setViewEvent(null); setEditEvent(null);
+  };
+
+  const handleDelete = () => {
+    dispatch({ type: 'DELETE_EVENT', id: viewEvent.id });
+    setViewEvent(null);
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-white">
+      {/* Header */}
+      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 flex items-center gap-4">
+        <button
+          onClick={() => setMonth(m => Math.max(0, m - 1))}
+          disabled={month === 0}
+          className="w-9 h-9 flex items-center justify-center rounded-full text-xl text-slate-500 hover:bg-slate-100 disabled:opacity-25 transition-all">
+          ‹
+        </button>
+        <div className="flex-1 text-center">
+          <h2 className="text-xl font-bold text-slate-800">{MONTHS[month]} {YEAR}</h2>
+        </div>
+        <button
+          onClick={() => setMonth(m => Math.min(11, m + 1))}
+          disabled={month === 11}
+          className="w-9 h-9 flex items-center justify-center rounded-full text-xl text-slate-500 hover:bg-slate-100 disabled:opacity-25 transition-all">
+          ›
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="flex-shrink-0 grid grid-cols-7 border-b border-slate-100 bg-slate-50">
+        {DAYS_SHORT.map(d => (
+          <div key={d} className="text-xs font-bold text-slate-400 text-center py-2">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="flex-1 grid grid-cols-7 grid-rows-6 border-l border-t border-slate-100 overflow-hidden">
+        {grid.map(({ dateStr, isCurrentMonth }) => (
+          <DateCell
+            key={dateStr}
+            dateStr={dateStr}
+            isCurrentMonth={isCurrentMonth}
+            events={getEventsForDate(dateStr)}
+            onEventClick={setViewEvent}
+            onCellClick={dateStr => isOwner && setAddDate(dateStr)}
+            today={today}
+          />
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex-shrink-0 px-5 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center gap-5 flex-wrap">
+        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span className="w-3 h-3 rounded bg-blue-500 inline-block"></span> Confirmed
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span className="w-3 h-3 rounded bg-slate-200 border border-slate-300 inline-block"></span> Tentative
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300 inline-block"></span> Guest Idea
+        </span>
+        {isOwner && (
+          <span className="ml-auto text-xs text-blue-500 font-medium">
+            Click any date to add an event
+          </span>
+        )}
+      </div>
+
+      {/* Modals */}
+      {viewEvent && !editEvent && (
+        <EventModal
+          event={viewEvent}
+          onClose={() => setViewEvent(null)}
+          onEdit={() => setEditEvent(viewEvent)}
+          onDelete={handleDelete}
+        />
+      )}
+      {editEvent && (
+        <EventForm
+          title="Edit Event"
+          initial={editEvent}
+          onSave={handleEditSave}
+          onCancel={() => { setEditEvent(null); setViewEvent(null); }}
+        />
+      )}
+      {addDate && (
+        <EventForm
+          title="New Event"
+          initial={{ icon: '✈️', title: '', startDate: addDate, endDate: addDate, description: '', type: 'confirmed' }}
+          onSave={handleAddSave}
+          onCancel={() => setAddDate(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Right Panel ──────────────────────────────────────────────────────────────
+
+function AddCommentForm() {
+  const { state, dispatch } = useContext(DataCtx);
+  const [name, setName] = useState('');
+  const [text, setText] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const allEvents = state.events;
+
+  const submit = e => {
+    e.preventDefault();
+    if (!name.trim() || !text.trim() || !eventId) return;
+    dispatch({ type: 'ADD_COMMENT', comment: {
+      id: uuid(), eventId, guestName: name.trim(), text: text.trim(), createdAt: Date.now(),
+    }});
+    setText(''); setSent(true);
+    setTimeout(() => setSent(false), 2000);
+  };
+
+  return (
+    <form onSubmit={submit} className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
+      <p className="text-xs font-bold text-stone-600 uppercase tracking-widest">Leave a Comment</p>
+      <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
+        className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all" />
+      <select value={eventId} onChange={e => setEventId(e.target.value)}
+        className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 bg-white transition-all appearance-none">
+        <option value="">Select an event to comment on...</option>
+        {allEvents.map(ev => (
+          <option key={ev.id} value={ev.id}>
+            {ev.icon} {ev.title} ({displayDate(ev.startDate)}{ev.startDate !== ev.endDate ? '–' + displayDate(ev.endDate) : ''})
+          </option>
+        ))}
+      </select>
+      {allEvents.length === 0 && (
+        <p className="text-xs text-stone-400 italic -mt-1">No events on the calendar yet.</p>
+      )}
+      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Your message..."
+        className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm resize-none outline-none focus:border-amber-400 transition-all h-20" />
+      <button type="submit" disabled={!name.trim() || !text.trim() || !eventId}
+        className={`w-full rounded-xl py-2.5 text-sm font-bold transition-all
+          ${sent ? 'bg-green-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 disabled:cursor-not-allowed'}`}>
+        {sent ? '✓ Posted!' : 'Post Comment'}
+      </button>
+    </form>
+  );
+}
+
+function CommentsTab() {
+  const { state, dispatch } = useContext(DataCtx);
+  const { isOwner } = useContext(AuthCtx);
+  const sorted = useMemo(() => [...state.comments].sort((a, b) => b.createdAt - a.createdAt), [state.comments]);
+
+  return (
+    <div className="space-y-3">
+      <AddCommentForm />
+      {sorted.length === 0 ? (
+        <div className="text-center py-6 text-stone-400 text-sm italic">
+          No comments yet — be the first to leave one!
+        </div>
+      ) : (
+        sorted.map(c => {
+          const ev = state.events.find(e => e.id === c.eventId);
+          return (
+            <div key={c.id} className="bg-white rounded-2xl border border-stone-200 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">
+                    {c.guestName[0].toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-stone-700">{c.guestName}</span>
+                  <span className="text-xs text-stone-400">{timeAgo(c.createdAt)}</span>
+                </div>
+                {isOwner && (
+                  <button onClick={() => dispatch({ type: 'DELETE_COMMENT', id: c.id })}
+                    className="text-xs text-stone-300 hover:text-red-400 transition-colors w-6 h-6 flex items-center justify-center">
+                    ✕
+                  </button>
+                )}
+              </div>
+              {ev && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{ev.icon}</span>
+                  <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-medium">
+                    {ev.title}
+                  </span>
+                </div>
+              )}
+              <p className="text-sm text-stone-600 leading-relaxed">{c.text}</p>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function SubmitTripIdeaForm() {
+  const { dispatch } = useContext(DataCtx);
+  const [icon, setIcon] = useState('🌴');
+  const [form, setForm] = useState({ submittedBy: '', title: '', startDate: '', endDate: '', description: '' });
+  const [sent, setSent] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const submit = e => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.startDate || !form.submittedBy.trim()) return;
+    const endDate = form.endDate || form.startDate;
+    const eventId = uuid();
+    const ideaId  = uuid();
+    dispatch({
+      type: 'ADD_TRIP_IDEA',
+      idea: { id: ideaId, icon, ...form, endDate, eventId },
+      event: {
+        id: eventId, icon, title: form.title, description: form.description,
+        startDate: form.startDate, endDate,
+        type: 'tentative', source: 'guest', tripIdeaId: ideaId,
+      },
+    });
+    setForm({ submittedBy: '', title: '', startDate: '', endDate: '', description: '' });
+    setIcon('🌴'); setSent(true);
+    setTimeout(() => setSent(false), 2000);
+  };
+
+  return (
+    <form onSubmit={submit} className="bg-amber-50 rounded-2xl border border-amber-200 p-4 space-y-3">
+      <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Propose a Trip Idea</p>
+      <p className="text-xs text-amber-600">Your idea will appear as a tentative event on the calendar.</p>
+      <input value={form.submittedBy} onChange={e => set('submittedBy', e.target.value)} placeholder="Your name *"
+        className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all" required />
+      <div className="flex gap-2 items-end">
+        <div>
+          <label className="text-xs text-amber-600 block mb-1.5">Icon</label>
+          <EmojiPicker value={icon} onChange={setIcon} />
+        </div>
+        <div className="flex-1">
+          <label className="text-xs text-amber-600 block mb-1.5">Title *</label>
+          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Trip title..." required
+            className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all" />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-xs text-amber-600 block mb-1.5">Start Date *</label>
+          <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)} required
+            className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all" />
+        </div>
+        <div className="flex-1">
+          <label className="text-xs text-amber-600 block mb-1.5">End Date</label>
+          <input type="date" value={form.endDate} onChange={e => set('endDate', e.target.value)} min={form.startDate}
+            className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all" />
+        </div>
+      </div>
+      <textarea value={form.description} onChange={e => set('description', e.target.value)}
+        placeholder="Why this trip? What's the plan?"
+        className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm resize-none outline-none focus:border-amber-400 transition-all h-16" />
+      <button type="submit"
+        className={`w-full rounded-xl py-2.5 text-sm font-bold transition-all
+          ${sent ? 'bg-green-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
+        {sent ? '✓ Submitted!' : 'Submit Trip Idea'}
+      </button>
+    </form>
+  );
+}
+
+function TentativePlansTab() {
+  const { state, dispatch } = useContext(DataCtx);
+  const { isOwner } = useContext(AuthCtx);
+  const ideas = useMemo(() => [...state.tripIdeas].reverse(), [state.tripIdeas]);
+
+  return (
+    <div className="space-y-3">
+      <SubmitTripIdeaForm />
+      {ideas.length === 0 ? (
+        <div className="text-center py-6 text-stone-400 text-sm italic">
+          No trip ideas yet — submit one above!
+        </div>
+      ) : (
+        ideas.map(idea => {
+          const eventIsConfirmed = state.events.find(e => e.id === idea.eventId)?.type === 'confirmed';
+          const isMultiDay = idea.startDate !== idea.endDate;
+          return (
+            <div key={idea.id} className={`bg-white rounded-2xl border p-4 space-y-2
+              ${eventIsConfirmed ? 'border-green-300 bg-green-50/30' : 'border-amber-200'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-xl flex-shrink-0 mt-0.5">{idea.icon || '🌴'}</span>
+                  <div>
+                    <p className="text-sm font-bold text-stone-700">{idea.title}</p>
+                    <p className="text-xs text-stone-500">by <span className="font-medium">{idea.submittedBy}</span></p>
+                  </div>
+                </div>
+                <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold
+                  ${eventIsConfirmed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {eventIsConfirmed ? '✓ Confirmed' : '~ Tentative'}
+                </span>
+              </div>
+              <p className="text-xs text-stone-500">
+                <span className="font-medium">{displayDateFull(idea.startDate)}</span>
+                {isMultiDay && <span> → <span className="font-medium">{displayDateFull(idea.endDate)}</span></span>}
+                <span className="ml-2 text-stone-400">({daysBetween(idea.startDate, idea.endDate)} {daysBetween(idea.startDate, idea.endDate) === 1 ? 'day' : 'days'})</span>
+              </p>
+              {idea.description && <p className="text-sm text-stone-600 leading-relaxed">{idea.description}</p>}
+              {isOwner && (
+                <div className="flex gap-2 pt-1.5 border-t border-stone-100">
+                  {!eventIsConfirmed && (
+                    <button onClick={() => dispatch({ type: 'CONFIRM_TRIP', eventId: idea.eventId })}
+                      className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 rounded-xl py-2 text-xs font-bold transition-colors border border-green-200">
+                      ✓ Confirm Trip
+                    </button>
+                  )}
+                  <button onClick={() => dispatch({ type: 'REMOVE_TRIP_IDEA', id: idea.id })}
+                    className="flex-1 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl py-2 text-xs font-bold transition-colors border border-red-200">
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function RightPanel() {
+  const [tab, setTab] = useState('comments');
+  const { state } = useContext(DataCtx);
+  const commentCount  = state.comments.length;
+  const ideaCount     = state.tripIdeas.length;
+
+  return (
+    <div className="h-full bg-stone-50 flex flex-col overflow-hidden border-l border-stone-200">
+      <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-stone-200">
+        <h2 className="text-sm font-bold text-stone-600 mb-3">Guest Panel</h2>
+        <div className="flex bg-stone-200 rounded-xl p-1 gap-1">
+          {[
+            ['comments', '💬 Comments', commentCount],
+            ['tentative', '🗺️ Trip Ideas', ideaCount],
+          ].map(([id, label, count]) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={`flex-1 text-xs py-2 px-1 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5
+                ${tab === id ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>
+              {label}
+              {count > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full leading-none font-bold
+                  ${id === 'comments' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
+        {tab === 'comments' ? <CommentsTab /> : <TentativePlansTab />}
+      </div>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [state, dispatch] = useReducer(reducer, initState);
+  const [isOwner, setOwner] = useState(false);
+
+  // Sync all state slices to localStorage
+  useEffect(() => { save('cal_events',     state.events);    }, [state.events]);
+  useEffect(() => { save('cal_comments',   state.comments);  }, [state.comments]);
+  useEffect(() => { save('cal_trip_ideas', state.tripIdeas); }, [state.tripIdeas]);
+  useEffect(() => { save('cal_pto',        state.pto);       }, [state.pto]);
+  useEffect(() => { save('cal_notes',      state.notes);     }, [state.notes]);
+
+  return (
+    <AuthCtx.Provider value={{ isOwner, setOwner }}>
+      <DataCtx.Provider value={{ state, dispatch }}>
+        <div className="h-screen flex overflow-hidden">
+          {/* Left — 25% */}
+          <div style={{ width: '25%' }} className="flex-shrink-0 h-full overflow-hidden">
+            <LeftPanel />
+          </div>
+          {/* Center — 50% */}
+          <div style={{ width: '50%' }} className="flex-shrink-0 h-full overflow-hidden border-x border-slate-200 shadow-sm">
+            <CalendarWidget />
+          </div>
+          {/* Right — 25% */}
+          <div style={{ width: '25%' }} className="flex-shrink-0 h-full overflow-hidden">
+            <RightPanel />
+          </div>
+        </div>
+      </DataCtx.Provider>
+    </AuthCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
