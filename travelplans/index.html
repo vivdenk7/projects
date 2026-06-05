@@ -129,7 +129,7 @@ const initState = {
   events:    load('cal_events',    []),
   comments:  load('cal_comments',  []),
   tripIdeas: load('cal_trip_ideas',[]),
-  pto:       load('cal_pto',       { totalDays: 0, lastTripStart: '', lastTripEnd: '' }),
+  pto:       load('cal_pto',       { totalDays: 0, lastTripStart: '', lastTripEnd: '', lastTripDays: '' }),
   notes:     load('cal_notes',     ''),
 };
 
@@ -257,8 +257,7 @@ function PTOTracker() {
     setEditing(false);
   };
 
-  const { totalDays, lastTripStart, lastTripEnd } = state.pto;
-  const tripDays = lastTripStart && lastTripEnd ? daysBetween(lastTripStart, lastTripEnd) : null;
+  const { totalDays, lastTripStart, lastTripEnd, lastTripDays } = state.pto;
 
   if (editing) return (
     <div className="bg-slate-700 rounded-2xl p-4 space-y-3">
@@ -280,6 +279,13 @@ function PTOTracker() {
         <input type="date" value={draft.lastTripEnd} min={draft.lastTripStart}
           onChange={e => setDraft(d => ({ ...d, lastTripEnd: e.target.value }))}
           className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white mt-1 outline-none focus:border-blue-400" />
+      </div>
+      <div>
+        <label className="text-xs text-slate-400">Last Trip Days</label>
+        <input type="number" min="0" value={draft.lastTripDays}
+          onChange={e => setDraft(d => ({ ...d, lastTripDays: e.target.value }))}
+          className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white mt-1 outline-none focus:border-blue-400"
+          placeholder="e.g. 5" />
       </div>
       <div className="flex gap-2">
         <button onClick={save} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-2 text-sm font-semibold">Save</button>
@@ -304,7 +310,7 @@ function PTOTracker() {
           <p className="text-xs text-slate-400">Last Trip</p>
           <p className="text-sm text-slate-200 font-medium">
             {displayDate(lastTripStart)} – {displayDate(lastTripEnd)}
-            <span className="ml-2 text-blue-400 font-semibold">({tripDays} {tripDays === 1 ? 'day' : 'days'})</span>
+            {lastTripDays && <span className="ml-2 text-blue-400 font-semibold">({lastTripDays} {lastTripDays == 1 ? 'day' : 'days'})</span>}
           </p>
         </div>
       ) : (
