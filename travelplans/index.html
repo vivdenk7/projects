@@ -127,6 +127,17 @@ function isInRange(dateStr, startDate, endDate) {
   return dateStr >= startDate && dateStr <= (endDate || startDate);
 }
 
+function dateRange(start, end) {
+  const dates = [];
+  let cur = new Date(start + 'T12:00:00');
+  const last = new Date((end || start) + 'T12:00:00');
+  while (cur <= last) {
+    dates.push(toDateStr(cur));
+    cur = new Date(cur.getTime() + 86400000);
+  }
+  return dates;
+}
+
 function timeAgo(ts) {
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60000);
@@ -206,11 +217,16 @@ function reducer(state, action) {
       return { ...state, pto: action.pto };
     case 'UPDATE_NOTES':
       return { ...state, notes: action.notes };
-    case 'SET_DAY_NOTE':
-      return { ...state, dayNotes: { ...state.dayNotes, [action.dateStr]: { color: action.color, note: action.note } } };
+    case 'SET_DAY_NOTE': {
+      const dn = { ...state.dayNotes };
+      dateRange(action.startDate, action.endDate).forEach(d => {
+        dn[d] = { color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate };
+      });
+      return { ...state, dayNotes: dn };
+    }
     case 'CLEAR_DAY_NOTE': {
       const dn = { ...state.dayNotes };
-      delete dn[action.dateStr];
+      dateRange(action.startDate, action.endDate).forEach(d => { delete dn[d]; });
       return { ...state, dayNotes: dn };
     }
     default:
@@ -759,6 +775,8 @@ const DAY_NOTE_COLORS = [
 function HolidayNoteModal({ dateStr, existing, onSave, onClear, onClose }) {
   const [color, setColor] = useState(existing?.color || 'rose');
   const [note, setNote] = useState(existing?.note || '');
+  const [startDate, setStartDate] = useState(existing?.startDate || dateStr);
+  const [endDate, setEndDate] = useState(existing?.endDate || dateStr);
   const ref = useRef();
   useEffect(() => {
     const h = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -769,11 +787,26 @@ function HolidayNoteModal({ dateStr, existing, onSave, onClear, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div ref={ref} className="modal-enter bg-white rounded-2xl shadow-2xl w-80 mx-4 overflow-hidden">
         <div className="px-5 py-4 bg-gradient-to-r from-slate-700 to-slate-800 flex justify-between items-center">
-          <h3 className="text-white font-bold text-sm">Holiday / Note — {displayDateFull(dateStr)}</h3>
+          <h3 className="text-white font-bold text-sm">Holiday / Note</h3>
           <button type="button" onClick={onClose}
             className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg leading-none">×</button>
         </div>
         <div className="px-5 py-4 space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">Start Date</label>
+              <input type="date" value={startDate} onChange={e => {
+                setStartDate(e.target.value);
+                if (endDate < e.target.value) setEndDate(e.target.value);
+              }}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 transition-all" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">End Date</label>
+              <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 transition-all" />
+            </div>
+          </div>
           <div>
             <label className="text-xs font-semibold text-slate-500 block mb-2">Color</label>
             <div className="flex gap-2">
@@ -793,7 +826,7 @@ function HolidayNoteModal({ dateStr, existing, onSave, onClear, onClose }) {
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 transition-all" />
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={() => onSave(color, note)}
+            <button onClick={() => onSave(color, note, startDate, endDate)}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-bold transition-colors">
               Save
             </button>
@@ -883,13 +916,16 @@ function CalendarWidget() {
     setViewEvent(null);
   };
 
-  const handleNoteSave = (color, note) => {
-    dispatch({ type: 'SET_DAY_NOTE', dateStr: noteDate, color, note });
+  const handleNoteSave = (color, note, startDate, endDate) => {
+    dispatch({ type: 'SET_DAY_NOTE', startDate, endDate, color, note });
     setNoteDate(null);
   };
 
   const handleNoteClear = () => {
-    dispatch({ type: 'CLEAR_DAY_NOTE', dateStr: noteDate });
+    const existing = state.dayNotes[noteDate];
+    const startDate = existing?.startDate || noteDate;
+    const endDate = existing?.endDate || noteDate;
+    dispatch({ type: 'CLEAR_DAY_NOTE', startDate, endDate });
     setNoteDate(null);
   };
 
@@ -1394,10 +1430,16 @@ function App() {
           await setDoc(doc(db, 'settings', 'notes'), { notes: action.notes });
           break;
         case 'SET_DAY_NOTE':
-          await setDoc(doc(db, 'dayNotes', action.dateStr), { color: action.color, note: action.note });
+          await Promise.all(
+            dateRange(action.startDate, action.endDate).map(d =>
+              setDoc(doc(db, 'dayNotes', d), { color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate })
+            )
+          );
           break;
         case 'CLEAR_DAY_NOTE':
-          await deleteDoc(doc(db, 'dayNotes', action.dateStr));
+          await Promise.all(
+            dateRange(action.startDate, action.endDate).map(d => deleteDoc(doc(db, 'dayNotes', d)))
+          );
           break;
         default:
           break;
