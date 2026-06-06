@@ -388,45 +388,7 @@ function OwnerNotes() {
   );
 }
 
-function ChangePIN() {
-  const [open, setOpen] = useState(false);
-  const [cur, setCur] = useState('');
-  const [next, setNext] = useState('');
-  const [msg, setMsg] = useState('');
-  const [ok, setOk] = useState(false);
-
-  const submit = () => {
-    const stored = lsLoad('cal_pin', '1234');
-    if (cur !== stored) { setMsg('Current PIN is incorrect'); return; }
-    if (next.length < 4) { setMsg('New PIN must be ≥ 4 characters'); return; }
-    lsSave('cal_pin', next);
-    setMsg('PIN updated!'); setOk(true);
-    setTimeout(() => { setOpen(false); setCur(''); setNext(''); setMsg(''); setOk(false); }, 1200);
-  };
-
-  if (!open) return (
-    <button onClick={() => setOpen(true)}
-      className="text-xs text-slate-500 hover:text-slate-300 underline underline-offset-2 transition-colors">
-      Change PIN
-    </button>
-  );
-
-  return (
-    <div className="bg-slate-700 rounded-2xl p-4 space-y-2">
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Change PIN</p>
-      <input type="password" value={cur} onChange={e => setCur(e.target.value)} placeholder="Current PIN"
-        className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-400" />
-      <input type="password" value={next} onChange={e => setNext(e.target.value)} placeholder="New PIN (min 4 chars)"
-        className="w-full bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-400" />
-      {msg && <p className={`text-xs ${ok ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
-      <div className="flex gap-2">
-        <button onClick={submit} className="flex-1 bg-slate-500 hover:bg-slate-400 text-white rounded-xl py-2 text-sm font-medium">Save</button>
-        <button onClick={() => { setOpen(false); setCur(''); setNext(''); setMsg(''); }}
-          className="flex-1 bg-transparent border border-slate-600 text-slate-400 rounded-xl py-2 text-sm">Cancel</button>
-      </div>
-    </div>
-  );
-}
+const OWNER_PIN = '0951';
 
 function OwnerUnlockStrip({ onAuth }) {
   const [pin, setPin] = useState('');
@@ -434,8 +396,7 @@ function OwnerUnlockStrip({ onAuth }) {
   const [open, setOpen] = useState(false);
 
   const attempt = () => {
-    const stored = lsLoad('cal_pin', '1234');
-    if (pin === stored) { onAuth(); setPin(''); setOpen(false); setErr(false); }
+    if (pin === OWNER_PIN) { onAuth(); setPin(''); setOpen(false); setErr(false); }
     else {
       setErr(true); setPin('');
       setTimeout(() => setErr(false), 1500);
@@ -501,7 +462,7 @@ function LeftPanel() {
         <PTOTracker />
         <OwnerNotes />
         <div className="flex-shrink-0 mt-auto pt-2">
-          {isOwner ? <ChangePIN /> : <OwnerUnlockStrip onAuth={() => setOwner(true)} />}
+          {!isOwner && <OwnerUnlockStrip onAuth={() => setOwner(true)} />}
         </div>
       </div>
     </div>
