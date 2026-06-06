@@ -722,7 +722,7 @@ const DAY_NOTE_BG = {
   sky:    'bg-sky-100',
 };
 
-function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, onNoteClick, dayNote, today }) {
+function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, onNoteClick, dayNote, today, isOwner }) {
   const dayNum = parseInt(dateStr.split('-')[2]);
   const isToday = dateStr === today;
   const noteBg = dayNote ? (DAY_NOTE_BG[dayNote.color] || 'bg-rose-100') : '';
@@ -745,12 +745,16 @@ function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, 
           {dayNum}
         </div>
         {dayNote && isCurrentMonth && (
-          <button
-            onClick={e => { e.stopPropagation(); onNoteClick(dateStr); }}
-            title={dayNote.note || 'Holiday/Note'}
-            className="text-xs leading-none opacity-60 hover:opacity-100 transition-opacity px-0.5">
-            📌
-          </button>
+          isOwner ? (
+            <button
+              onClick={e => { e.stopPropagation(); onNoteClick(dateStr); }}
+              title={dayNote.note || 'Holiday/Note'}
+              className="text-xs leading-none opacity-60 hover:opacity-100 transition-opacity px-0.5">
+              📌
+            </button>
+          ) : (
+            <span title={dayNote.note || 'Holiday/Note'} className="text-xs leading-none opacity-50 px-0.5">📌</span>
+          )
         )}
       </div>
       {dayNote && dayNote.note && isCurrentMonth && (
@@ -969,6 +973,7 @@ function CalendarWidget() {
             onNoteClick={dateStr => { setNoteDate(dateStr); }}
             dayNote={state.dayNotes[dateStr] || null}
             today={today}
+            isOwner={isOwner}
           />
         ))}
       </div>
