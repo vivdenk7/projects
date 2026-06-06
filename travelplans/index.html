@@ -1120,8 +1120,8 @@ function SubmitTripIdeaForm() {
 
   return (
     <form onSubmit={submit} className="bg-amber-50 rounded-2xl border border-amber-200 p-4 space-y-3">
-      <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Propose a Trip Idea</p>
-      <p className="text-xs text-amber-600">Your idea will appear as a tentative event on the calendar.</p>
+      <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Let's Plan a Trip!</p>
+      <p className="text-xs text-amber-600">Your idea will appear as a tentative event on the cal. We'll discuss, then confirm.</p>
       <input value={form.submittedBy} onChange={e => set('submittedBy', e.target.value)} placeholder="Your name *"
         className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all" required />
       <div className="flex gap-2 items-end">
@@ -1131,7 +1131,7 @@ function SubmitTripIdeaForm() {
         </div>
         <div className="flex-1">
           <label className="text-xs text-amber-600 block mb-1.5">Title *</label>
-          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Trip title..." required
+          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Trip idea..." required
             className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-400 transition-all" />
         </div>
       </div>
@@ -1148,7 +1148,7 @@ function SubmitTripIdeaForm() {
         </div>
       </div>
       <textarea value={form.description} onChange={e => set('description', e.target.value)}
-        placeholder="Why this trip? What's the plan?"
+        placeholder="What you tryna get into?"
         className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm resize-none outline-none focus:border-amber-400 transition-all h-16" />
       <button type="submit"
         className={`w-full rounded-xl py-2.5 text-sm font-bold transition-all
