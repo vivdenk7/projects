@@ -212,53 +212,16 @@ function EmojiPicker({ value, onChange }) {
 
 // ─── Left Panel ───────────────────────────────────────────────────────────────
 
-function OwnerAuth({ onAuth }) {
-  const [pin, setPin] = useState('');
-  const [err, setErr] = useState(false);
-  const [shake, setShake] = useState(false);
-
-  const attempt = () => {
-    const stored = load('cal_pin', '1234');
-    if (pin === stored) { onAuth(); }
-    else {
-      setErr(true); setShake(true); setPin('');
-      setTimeout(() => { setErr(false); setShake(false); }, 1500);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 px-6 py-10">
-      <div className="w-16 h-16 rounded-2xl bg-slate-700 flex items-center justify-center text-3xl shadow-inner">🔒</div>
-      <div className="text-center">
-        <p className="text-slate-200 font-semibold">Owner Access</p>
-        <p className="text-slate-400 text-xs mt-1">Enter your PIN to manage events</p>
-      </div>
-      <input
-        type="password"
-        value={pin}
-        onChange={e => setPin(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && attempt()}
-        placeholder="PIN"
-        className={`w-36 text-center border-2 rounded-xl px-4 py-2.5 text-lg tracking-[0.3em] bg-slate-700 text-white placeholder-slate-500 outline-none transition-all
-          ${err ? 'border-red-500' : 'border-slate-600 focus:border-blue-400'}
-          ${shake ? 'animate-bounce' : ''}`}
-      />
-      {err && <p className="text-red-400 text-xs -mt-2">Incorrect PIN</p>}
-      <button onClick={attempt}
-        className="w-36 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition-colors shadow-md">
-        Unlock
-      </button>
-      <p className="text-slate-500 text-xs">Default PIN: 1234</p>
-    </div>
-  );
-}
-
 function PTOTracker() {
   const { state, dispatch } = useContext(DataCtx);
+  const { isOwner } = useContext(AuthCtx);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ ...state.pto });
 
   useEffect(() => { setDraft({ ...state.pto }); }, [state.pto]);
+
+  // If owner logs out mid-edit, collapse the form
+  useEffect(() => { if (!isOwner) setEditing(false); }, [isOwner]);
 
   const save = () => {
     dispatch({ type: 'UPDATE_PTO', pto: draft });
@@ -307,7 +270,9 @@ function PTOTracker() {
     <div className="bg-slate-700 rounded-2xl p-4">
       <div className="flex justify-between items-center mb-3">
         <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">PTO Tracker</p>
-        <button onClick={() => setEditing(true)} className="text-xs text-slate-400 hover:text-blue-300 transition-colors">Edit</button>
+        {isOwner && (
+          <button onClick={() => setEditing(true)} className="text-xs text-slate-400 hover:text-blue-300 transition-colors">Edit</button>
+        )}
       </div>
       <div className="flex items-baseline gap-2 mb-2">
         <span className="text-4xl font-black text-white">{totalDays}</span>
@@ -330,8 +295,11 @@ function PTOTracker() {
 
 function OwnerNotes() {
   const { state, dispatch } = useContext(DataCtx);
+  const { isOwner } = useContext(AuthCtx);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.notes);
+
+  useEffect(() => { if (!isOwner) setEditing(false); }, [isOwner]);
 
   const save = () => {
     dispatch({ type: 'UPDATE_NOTES', notes: draft });
@@ -347,14 +315,15 @@ function OwnerNotes() {
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex justify-between items-center mb-2">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Notes & Availability</p>
-        {editing
-          ? <div className="flex gap-3">
-              <button onClick={save} className="text-xs text-blue-400 hover:text-blue-300">Save</button>
-              <button onClick={cancel} className="text-xs text-slate-500 hover:text-slate-400">Cancel</button>
-            </div>
-          : <button onClick={() => { setDraft(state.notes); setEditing(true); }}
-              className="text-xs text-slate-400 hover:text-blue-300 transition-colors">Edit</button>
-        }
+        {isOwner && (
+          editing
+            ? <div className="flex gap-3">
+                <button onClick={save} className="text-xs text-blue-400 hover:text-blue-300">Save</button>
+                <button onClick={cancel} className="text-xs text-slate-500 hover:text-slate-400">Cancel</button>
+              </div>
+            : <button onClick={() => { setDraft(state.notes); setEditing(true); }}
+                className="text-xs text-slate-400 hover:text-blue-300 transition-colors">Edit</button>
+        )}
       </div>
       {editing ? (
         <textarea
@@ -370,7 +339,7 @@ function OwnerNotes() {
         </div>
       ) : (
         <div className="flex-1 bg-slate-700/30 rounded-xl p-3 text-sm text-slate-500 italic flex items-start min-h-32">
-          No notes yet — click Edit to add upcoming plans or open availability windows.
+          No notes yet.
         </div>
       )}
     </div>
@@ -417,6 +386,55 @@ function ChangePIN() {
   );
 }
 
+function OwnerUnlockStrip({ onAuth }) {
+  const [pin, setPin] = useState('');
+  const [err, setErr] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const attempt = () => {
+    const stored = load('cal_pin', '1234');
+    if (pin === stored) { onAuth(); setPin(''); setOpen(false); setErr(false); }
+    else {
+      setErr(true); setPin('');
+      setTimeout(() => setErr(false), 1500);
+    }
+  };
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-slate-200 text-xs font-semibold transition-colors border border-slate-600">
+      🔒 Unlock to Edit
+    </button>
+  );
+
+  return (
+    <div className="bg-slate-700 rounded-2xl p-3 space-y-2 border border-slate-600">
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Enter PIN to edit</p>
+      <div className="flex gap-2">
+        <input
+          type="password"
+          value={pin}
+          onChange={e => setPin(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && attempt()}
+          autoFocus
+          placeholder="PIN"
+          className={`flex-1 text-center border-2 rounded-xl px-3 py-2 text-sm tracking-[0.25em] bg-slate-600 text-white placeholder-slate-500 outline-none transition-all
+            ${err ? 'border-red-500' : 'border-slate-500 focus:border-blue-400'}`}
+        />
+        <button onClick={attempt}
+          className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors">
+          Unlock
+        </button>
+        <button onClick={() => { setOpen(false); setPin(''); setErr(false); }}
+          className="px-2 py-2 bg-slate-600 hover:bg-slate-500 text-slate-400 rounded-xl text-xs transition-colors">
+          ✕
+        </button>
+      </div>
+      {err && <p className="text-red-400 text-xs text-center">Incorrect PIN</p>}
+    </div>
+  );
+}
+
 function LeftPanel() {
   const { isOwner, setOwner } = useContext(AuthCtx);
 
@@ -425,7 +443,9 @@ function LeftPanel() {
       <div className="flex-shrink-0 px-5 py-4 border-b border-slate-700 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-bold text-slate-200">Owner Panel</h2>
-          <p className="text-xs text-slate-500">Private — password protected</p>
+          <p className="text-xs text-slate-500">
+            {isOwner ? 'Editing unlocked' : 'Read-only — unlock to edit'}
+          </p>
         </div>
         {isOwner && (
           <button onClick={() => setOwner(false)}
@@ -435,17 +455,13 @@ function LeftPanel() {
         )}
       </div>
 
-      {!isOwner ? (
-        <OwnerAuth onAuth={() => setOwner(true)} />
-      ) : (
-        <div className="flex-1 overflow-y-auto owner-scrollbar p-4 flex flex-col gap-4">
-          <PTOTracker />
-          <OwnerNotes />
-          <div className="flex-shrink-0">
-            <ChangePIN />
-          </div>
+      <div className="flex-1 overflow-y-auto owner-scrollbar p-4 flex flex-col gap-4">
+        <PTOTracker />
+        <OwnerNotes />
+        <div className="flex-shrink-0 mt-auto pt-2">
+          {isOwner ? <ChangePIN /> : <OwnerUnlockStrip onAuth={() => setOwner(true)} />}
         </div>
-      )}
+      </div>
     </div>
   );
 }
