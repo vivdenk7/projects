@@ -22,6 +22,36 @@
     @keyframes fadeIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
     .modal-enter { animation: fadeIn .15s ease; }
   </style>
+
+  <!-- Firebase initialization (module context) — exposes window.__fb for the Babel script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
+    import {
+      getFirestore, collection, doc,
+      addDoc, setDoc, deleteDoc, updateDoc,
+      onSnapshot, getDoc
+    } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCip7JEYF2BtKFJNBqJEDJadhJBrjbEN1Q",
+      authDomain: "vd-travelcal.firebaseapp.com",
+      projectId: "vd-travelcal",
+      storageBucket: "vd-travelcal.firebasestorage.app",
+      messagingSenderId: "85749554036",
+      appId: "1:85749554036:web:d85bf7c9f7ec402bebaa21",
+      measurementId: "G-QX5LJDGT7F"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const db = getFirestore(app);
+
+    // Expose everything the Babel script needs via window
+    window.__fb = { db, collection, doc, addDoc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc };
+    window.__fbReady = true;
+    window.dispatchEvent(new Event('firebase-ready'));
+  </script>
 </head>
 <body>
   <div id="root"></div>
@@ -55,15 +85,12 @@ function getMonthGrid(year, month) {
   const cells = [];
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  // Trailing days from previous month
   for (let i = 0; i < firstDay; i++) {
     cells.push({ dateStr: toDateStr(new Date(year, month, -(firstDay - 1 - i))), isCurrentMonth: false });
   }
-  // Current month
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ dateStr: toDateStr(new Date(year, month, d)), isCurrentMonth: true });
   }
-  // Leading days from next month
   let next = 1;
   while (cells.length < 42) {
     cells.push({ dateStr: toDateStr(new Date(year, month + 1, next++)), isCurrentMonth: false });
@@ -110,32 +137,49 @@ function timeAgo(ts) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// ─── Persistence ──────────────────────────────────────────────────────────────
+// ─── Local-only persistence (PIN only) ───────────────────────────────────────
 
-function load(key, def) {
+function lsLoad(key, def) {
   try {
     const v = localStorage.getItem(key);
     return v !== null ? JSON.parse(v) : def;
   } catch { return def; }
 }
 
-function save(key, val) {
+function lsSave(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 
+const EMPTY_PTO = { totalDays: 0, lastTripStart: '', lastTripEnd: '', lastTripDays: '' };
+
 const initState = {
-  events:    load('cal_events',    []),
-  comments:  load('cal_comments',  []),
-  tripIdeas: load('cal_trip_ideas',[]),
-  pto:       load('cal_pto',       { totalDays: 0, lastTripStart: '', lastTripEnd: '', lastTripDays: '' }),
-  notes:     load('cal_notes',     ''),
-  dayNotes:  load('cal_day_notes', {}),
+  events:    [],
+  comments:  [],
+  tripIdeas: [],
+  pto:       EMPTY_PTO,
+  notes:     '',
+  dayNotes:  {},
 };
 
 function reducer(state, action) {
   switch (action.type) {
+    // ── Firestore snapshot setters ────────────────────────────────────────────
+    case 'SET_EVENTS':
+      return { ...state, events: action.events };
+    case 'SET_COMMENTS':
+      return { ...state, comments: action.comments };
+    case 'SET_TRIP_IDEAS':
+      return { ...state, tripIdeas: action.tripIdeas };
+    case 'SET_PTO':
+      return { ...state, pto: action.pto };
+    case 'SET_NOTES':
+      return { ...state, notes: action.notes };
+    case 'SET_DAY_NOTES':
+      return { ...state, dayNotes: action.dayNotes };
+
+    // ── Optimistic local actions ───────────────────────────────────────────────
     case 'ADD_EVENT':
       return { ...state, events: [...state.events, action.event] };
     case 'UPDATE_EVENT':
@@ -219,8 +263,6 @@ function PTOTracker() {
   const [draft, setDraft] = useState({ ...state.pto });
 
   useEffect(() => { setDraft({ ...state.pto }); }, [state.pto]);
-
-  // If owner logs out mid-edit, collapse the form
   useEffect(() => { if (!isOwner) setEditing(false); }, [isOwner]);
 
   const save = () => {
@@ -354,10 +396,10 @@ function ChangePIN() {
   const [ok, setOk] = useState(false);
 
   const submit = () => {
-    const stored = load('cal_pin', '1234');
+    const stored = lsLoad('cal_pin', '1234');
     if (cur !== stored) { setMsg('Current PIN is incorrect'); return; }
     if (next.length < 4) { setMsg('New PIN must be ≥ 4 characters'); return; }
-    save('cal_pin', next);
+    lsSave('cal_pin', next);
     setMsg('PIN updated!'); setOk(true);
     setTimeout(() => { setOpen(false); setCur(''); setNext(''); setMsg(''); setOk(false); }, 1200);
   };
@@ -392,7 +434,7 @@ function OwnerUnlockStrip({ onAuth }) {
   const [open, setOpen] = useState(false);
 
   const attempt = () => {
-    const stored = load('cal_pin', '1234');
+    const stored = lsLoad('cal_pin', '1234');
     if (pin === stored) { onAuth(); setPin(''); setOpen(false); setErr(false); }
     else {
       setErr(true); setPin('');
@@ -594,7 +636,6 @@ function EventForm({ title, initial, onSave, onCancel }) {
         </div>
 
         <div className="px-5 py-5 space-y-4">
-          {/* Icon + Title */}
           <div className="flex gap-3 items-end">
             <div>
               <label className="text-xs font-semibold text-slate-500 block mb-1.5">Icon</label>
@@ -608,7 +649,6 @@ function EventForm({ title, initial, onSave, onCancel }) {
             </div>
           </div>
 
-          {/* Dates */}
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-xs font-semibold text-slate-500 block mb-1.5">Start Date <span className="text-red-400">*</span></label>
@@ -622,7 +662,6 @@ function EventForm({ title, initial, onSave, onCancel }) {
             </div>
           </div>
 
-          {/* Type */}
           <div>
             <label className="text-xs font-semibold text-slate-500 block mb-1.5">Status</label>
             <div className="flex gap-2">
@@ -639,7 +678,6 @@ function EventForm({ title, initial, onSave, onCancel }) {
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className="text-xs font-semibold text-slate-500 block mb-1.5">Description</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)}
@@ -896,7 +934,6 @@ function CalendarWidget() {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 flex items-center gap-4">
         <button
           onClick={() => setMonth(m => Math.max(0, m - 1))}
@@ -915,7 +952,6 @@ function CalendarWidget() {
         </button>
       </div>
 
-      {/* Day headers */}
       <div className="flex-shrink-0 grid grid-cols-7 border-b border-slate-100 bg-slate-50">
         {DAYS_SHORT.map(d => (
           <div key={d} className="text-xs font-bold text-slate-400 text-center py-2">
@@ -924,7 +960,6 @@ function CalendarWidget() {
         ))}
       </div>
 
-      {/* Calendar grid */}
       <div className="flex-1 grid grid-cols-7 grid-rows-6 border-l border-t border-slate-100 overflow-hidden">
         {grid.map(({ dateStr, isCurrentMonth }) => (
           <DateCell
@@ -941,7 +976,6 @@ function CalendarWidget() {
         ))}
       </div>
 
-      {/* Legend */}
       <div className="flex-shrink-0 px-5 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center gap-5 flex-wrap">
         <span className="flex items-center gap-1.5 text-xs text-slate-500">
           <span className="w-3 h-3 rounded bg-blue-500 inline-block"></span> Confirmed
@@ -962,7 +996,6 @@ function CalendarWidget() {
         )}
       </div>
 
-      {/* Modals */}
       {cellMenu && (
         <CellActionMenu
           dateStr={cellMenu}
@@ -1221,7 +1254,7 @@ function TentativePlansTab() {
                       ✓ Confirm Trip
                     </button>
                   )}
-                  <button onClick={() => dispatch({ type: 'REMOVE_TRIP_IDEA', id: idea.id })}
+                  <button onClick={() => dispatch({ type: 'REMOVE_TRIP_IDEA', id: idea.id, eventId: idea.eventId })}
                     className="flex-1 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl py-2 text-xs font-bold transition-colors border border-red-200">
                     Remove
                   </button>
@@ -1272,33 +1305,159 @@ function RightPanel() {
   );
 }
 
+// ─── Loading screen ───────────────────────────────────────────────────────────
+
+function LoadingScreen() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-slate-900">
+      <div className="text-center space-y-3">
+        <div className="text-4xl animate-pulse">✈️</div>
+        <p className="text-slate-400 text-sm">Loading travel plans…</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, initState);
+  const [state, localDispatch] = useReducer(reducer, initState);
   const [isOwner, setOwner] = useState(false);
+  const [fbReady, setFbReady] = useState(!!window.__fbReady);
+  const [loading, setLoading] = useState(true);
 
-  // Sync all state slices to localStorage
-  useEffect(() => { save('cal_events',     state.events);    }, [state.events]);
-  useEffect(() => { save('cal_comments',   state.comments);  }, [state.comments]);
-  useEffect(() => { save('cal_trip_ideas', state.tripIdeas); }, [state.tripIdeas]);
-  useEffect(() => { save('cal_pto',        state.pto);       }, [state.pto]);
-  useEffect(() => { save('cal_notes',      state.notes);     }, [state.notes]);
-  useEffect(() => { save('cal_day_notes',  state.dayNotes);  }, [state.dayNotes]);
+  // Wait for Firebase module to initialise
+  useEffect(() => {
+    if (window.__fbReady) { setFbReady(true); return; }
+    const handler = () => setFbReady(true);
+    window.addEventListener('firebase-ready', handler);
+    return () => window.removeEventListener('firebase-ready', handler);
+  }, []);
+
+  // Subscribe to all Firestore collections once Firebase is ready
+  useEffect(() => {
+    if (!fbReady) return;
+    const { db, collection, doc, onSnapshot } = window.__fb;
+
+    let resolved = 0;
+    const total = 6;
+    const check = () => { if (++resolved >= total) setLoading(false); };
+
+    const unsubs = [
+      onSnapshot(collection(db, 'events'), snap => {
+        localDispatch({ type: 'SET_EVENTS', events: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+        check();
+      }),
+      onSnapshot(collection(db, 'comments'), snap => {
+        localDispatch({ type: 'SET_COMMENTS', comments: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+        check();
+      }),
+      onSnapshot(collection(db, 'tripIdeas'), snap => {
+        localDispatch({ type: 'SET_TRIP_IDEAS', tripIdeas: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+        check();
+      }),
+      onSnapshot(doc(db, 'settings', 'pto'), snap => {
+        localDispatch({ type: 'SET_PTO', pto: snap.exists() ? snap.data() : { totalDays: 0, lastTripStart: '', lastTripEnd: '', lastTripDays: '' } });
+        check();
+      }),
+      onSnapshot(doc(db, 'settings', 'notes'), snap => {
+        localDispatch({ type: 'SET_NOTES', notes: snap.exists() ? (snap.data().notes || '') : '' });
+        check();
+      }),
+      onSnapshot(collection(db, 'dayNotes'), snap => {
+        const dayNotes = {};
+        snap.docs.forEach(d => { dayNotes[d.id] = d.data(); });
+        localDispatch({ type: 'SET_DAY_NOTES', dayNotes });
+        check();
+      }),
+    ];
+
+    return () => unsubs.forEach(u => u());
+  }, [fbReady]);
+
+  // Firestore-aware dispatch: optimistically updates local state, then persists to Firestore
+  const dispatch = useCallback(async (action) => {
+    if (!window.__fb) { localDispatch(action); return; }
+    const { db, collection, doc, setDoc, deleteDoc, updateDoc } = window.__fb;
+
+    // Optimistic local update
+    localDispatch(action);
+
+    try {
+      switch (action.type) {
+        case 'ADD_EVENT':
+          await setDoc(doc(db, 'events', action.event.id), action.event);
+          break;
+        case 'UPDATE_EVENT':
+          await setDoc(doc(db, 'events', action.event.id), action.event);
+          break;
+        case 'DELETE_EVENT':
+          await deleteDoc(doc(db, 'events', action.id));
+          break;
+        case 'ADD_COMMENT':
+          await setDoc(doc(db, 'comments', action.comment.id), action.comment);
+          break;
+        case 'DELETE_COMMENT':
+          await deleteDoc(doc(db, 'comments', action.id));
+          break;
+        case 'ADD_TRIP_IDEA':
+          await Promise.all([
+            setDoc(doc(db, 'tripIdeas', action.idea.id), action.idea),
+            setDoc(doc(db, 'events', action.event.id), action.event),
+          ]);
+          break;
+        case 'REMOVE_TRIP_IDEA': {
+          // Find the idea's eventId from current local state before it's removed
+          // (localDispatch ran already, so use the action's id against Firestore directly)
+          // We store eventId on the idea, so we need it — grab from local state before optimistic update
+          // Actually we dispatched optimistically first, so we need the eventId from action context.
+          // The action doesn't carry eventId — we need to get it from state before dispatch.
+          // This is handled by the caller passing the full idea; see workaround below.
+          if (action.eventId) {
+            await Promise.all([
+              deleteDoc(doc(db, 'tripIdeas', action.id)),
+              deleteDoc(doc(db, 'events', action.eventId)),
+            ]);
+          } else {
+            await deleteDoc(doc(db, 'tripIdeas', action.id));
+          }
+          break;
+        }
+        case 'CONFIRM_TRIP':
+          await updateDoc(doc(db, 'events', action.eventId), { type: 'confirmed' });
+          break;
+        case 'UPDATE_PTO':
+          await setDoc(doc(db, 'settings', 'pto'), action.pto);
+          break;
+        case 'UPDATE_NOTES':
+          await setDoc(doc(db, 'settings', 'notes'), { notes: action.notes });
+          break;
+        case 'SET_DAY_NOTE':
+          await setDoc(doc(db, 'dayNotes', action.dateStr), { color: action.color, note: action.note });
+          break;
+        case 'CLEAR_DAY_NOTE':
+          await deleteDoc(doc(db, 'dayNotes', action.dateStr));
+          break;
+        default:
+          break;
+      }
+    } catch (err) {
+      console.error('Firestore write failed:', action.type, err);
+    }
+  }, []);
+
+  if (!fbReady || loading) return <LoadingScreen />;
 
   return (
     <AuthCtx.Provider value={{ isOwner, setOwner }}>
       <DataCtx.Provider value={{ state, dispatch }}>
         <div className="h-screen flex overflow-hidden">
-          {/* Left — 25% */}
           <div style={{ width: '25%' }} className="flex-shrink-0 h-full overflow-hidden">
             <LeftPanel />
           </div>
-          {/* Center — 50% */}
           <div style={{ width: '50%' }} className="flex-shrink-0 h-full overflow-hidden border-x border-slate-200 shadow-sm">
             <CalendarWidget />
           </div>
-          {/* Right — 25% */}
           <div style={{ width: '25%' }} className="flex-shrink-0 h-full overflow-hidden">
             <RightPanel />
           </div>
