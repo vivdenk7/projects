@@ -53,8 +53,8 @@
       --c-B-light: #0d2e22;
       --c-S: #60a5fa;
       --c-S-light: #0f2240;
-      --c-dash: #9ca3af;
-      --c-dash-light: #1e2130;
+      --c-dash: #fb923c;
+      --c-dash-light: #2c1503;
     }
 
     /* ───────────────────────────────
@@ -533,10 +533,19 @@
   const START_HOUR = 8;
   const END_HOUR = 18;
   const TOTAL_MINS = (END_HOUR - START_HOUR) * 60; // 600
-  const SLOT_HEIGHT = 48; // px per 30 min
-  const PX_PER_MIN = SLOT_HEIGHT / 30;
   const SNAP = 15; // minutes
-  const TIMELINE_HEIGHT = TOTAL_MINS * PX_PER_MIN; // 960px
+
+  // Compute SLOT_HEIGHT so that 9:00–17:00 (480 mins) always fits in the scroll area
+  function computeSlotHeight() {
+    const scroll = document.querySelector('.planner-scroll');
+    const available = scroll.clientHeight - 40; // subtract padding
+    const visibleMins = (17 - 9) * 60; // 480 mins (9am–5pm)
+    const pxPerMin = available / visibleMins;
+    return Math.max(pxPerMin * 30, 24); // px per 30-min slot, min 24px
+  }
+
+  let SLOT_HEIGHT = 48;
+  let PX_PER_MIN = SLOT_HEIGHT / 30;
 
   // ── State ──
   let checklistItems = [];
@@ -585,7 +594,7 @@
         const label = document.createElement('span');
         label.className = 'slot-label';
         const totalMins = START_HOUR * 60 + i * 30;
-        label.textContent = formatTime(totalMins);
+        label.textContent = formatAxisLabel(totalMins);
         div.appendChild(label);
       }
 
@@ -599,7 +608,7 @@
     const endLabel = document.createElement('span');
     endLabel.className = 'slot-label';
     endLabel.style.cssText = `position:absolute;left:-52px;bottom:-8px;font-size:11px;color:#4b5563;width:46px;text-align:right;`;
-    endLabel.textContent = '6:00 PM';
+    endLabel.textContent = '6:00';
     timeline.appendChild(endLabel);
   }
 
@@ -609,6 +618,13 @@
     const ampm = h < 12 ? 'AM' : 'PM';
     const h12 = h % 12 || 12;
     return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+  }
+
+  function formatAxisLabel(absoluteMins) {
+    const h = Math.floor(absoluteMins / 60);
+    const m = absoluteMins % 60;
+    const h12 = h % 12 || 12;
+    return `${h12}:${m.toString().padStart(2, '0')}`;
   }
 
   function minsToOffset(mins) { // mins from 9am → px
@@ -860,9 +876,20 @@
   }
 
   // ── Init ──
-  buildTimeline();
-  renderBlocks();
+  function init() {
+    SLOT_HEIGHT = computeSlotHeight();
+    PX_PER_MIN = SLOT_HEIGHT / 30;
+    timeline.style.height = (TOTAL_MINS * PX_PER_MIN) + 'px';
+    buildTimeline();
+    renderBlocks();
+    // Scroll so 9am is at the top
+    const scroll = document.querySelector('.planner-scroll');
+    scroll.scrollTop = (9 - START_HOUR) * 60 * PX_PER_MIN;
+  }
+
+  init();
   renderChecklist();
+  window.addEventListener('resize', init);
 </script>
 </body>
 </html>
