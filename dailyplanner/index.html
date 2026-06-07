@@ -9,8 +9,8 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f8f9fa;
-      color: #1a1a1a;
+      background: #0f1117;
+      color: #e5e7eb;
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -19,8 +19,8 @@
 
     header {
       padding: 14px 24px;
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
+      background: #1a1d27;
+      border-bottom: 1px solid #2a2d3a;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -30,7 +30,7 @@
     header h1 {
       font-size: 16px;
       font-weight: 600;
-      color: #111;
+      color: #f3f4f6;
       letter-spacing: -0.01em;
     }
 
@@ -48,13 +48,13 @@
     /* ── CATEGORY COLORS ── */
     :root {
       --c-M: #f472b6;
-      --c-M-light: #fce7f3;
+      --c-M-light: #3b1a2e;
       --c-B: #34d399;
-      --c-B-light: #d1fae5;
+      --c-B-light: #0d2e22;
       --c-S: #60a5fa;
-      --c-S-light: #dbeafe;
-      --c-dash: #4b5563;
-      --c-dash-light: #e5e7eb;
+      --c-S-light: #0f2240;
+      --c-dash: #9ca3af;
+      --c-dash-light: #1e2130;
     }
 
     /* ───────────────────────────────
@@ -62,8 +62,8 @@
     ─────────────────────────────── */
     .checklist-panel {
       width: 40%;
-      background: #fff;
-      border-right: 1px solid #e5e7eb;
+      background: #1a1d27;
+      border-right: 1px solid #2a2d3a;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -71,7 +71,7 @@
 
     .panel-header {
       padding: 16px 20px 12px;
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid #2a2d3a;
     }
 
     .panel-title {
@@ -79,7 +79,7 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #9ca3af;
+      color: #4b5563;
       margin-bottom: 12px;
     }
 
@@ -92,17 +92,20 @@
     .add-row input[type="text"] {
       flex: 1;
       padding: 7px 10px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #2a2d3a;
       border-radius: 6px;
       font-size: 13px;
       outline: none;
       transition: border-color 0.15s;
-      background: #fafafa;
+      background: #0f1117;
+      color: #e5e7eb;
     }
 
+    .add-row input[type="text"]::placeholder { color: #4b5563; }
+
     .add-row input[type="text"]:focus {
-      border-color: #d1d5db;
-      background: #fff;
+      border-color: #3f4459;
+      background: #0f1117;
     }
 
     .cat-btns {
@@ -124,9 +127,9 @@
       justify-content: center;
     }
 
-    .cat-btn[data-cat="M"] { background: var(--c-M-light); color: #be185d; }
-    .cat-btn[data-cat="B"] { background: var(--c-B-light); color: #065f46; }
-    .cat-btn[data-cat="S"] { background: var(--c-S-light); color: #1d4ed8; }
+    .cat-btn[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); }
+    .cat-btn[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); }
+    .cat-btn[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); }
 
     .cat-btn.active[data-cat="M"] { border-color: var(--c-M); }
     .cat-btn.active[data-cat="B"] { border-color: var(--c-B); }
@@ -137,8 +140,8 @@
       height: 28px;
       border-radius: 6px;
       border: none;
-      background: #111;
-      color: #fff;
+      background: #3f4459;
+      color: #f3f4f6;
       font-size: 18px;
       line-height: 1;
       cursor: pointer;
@@ -149,7 +152,7 @@
       transition: background 0.12s;
     }
 
-    .add-btn:hover { background: #374151; }
+    .add-btn:hover { background: #555c77; }
 
     .checklist-items {
       flex: 1;
@@ -161,7 +164,7 @@
       content: 'Add items above';
       display: block;
       text-align: center;
-      color: #d1d5db;
+      color: #374151;
       font-size: 13px;
       margin-top: 40px;
     }
@@ -176,13 +179,13 @@
       transition: background 0.1s;
     }
 
-    .checklist-item:hover { background: #f9fafb; }
+    .checklist-item:hover { background: #222636; }
 
     .checklist-item input[type="checkbox"] {
       width: 15px;
       height: 15px;
       cursor: pointer;
-      accent-color: #111;
+      accent-color: #60a5fa;
       flex-shrink: 0;
     }
 
@@ -198,28 +201,28 @@
       flex-shrink: 0;
     }
 
-    .item-badge[data-cat="M"] { background: var(--c-M-light); color: #be185d; }
-    .item-badge[data-cat="B"] { background: var(--c-B-light); color: #065f46; }
-    .item-badge[data-cat="S"] { background: var(--c-S-light); color: #1d4ed8; }
+    .item-badge[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); }
+    .item-badge[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); }
+    .item-badge[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); }
 
     .item-text {
       flex: 1;
       font-size: 13.5px;
       line-height: 1.4;
-      color: #1a1a1a;
+      color: #d1d5db;
       transition: color 0.15s;
     }
 
     .checklist-item.done .item-text {
       text-decoration: line-through;
-      color: #9ca3af;
+      color: #4b5563;
     }
 
     .delete-btn {
       opacity: 0;
       background: none;
       border: none;
-      color: #9ca3af;
+      color: #4b5563;
       font-size: 16px;
       cursor: pointer;
       padding: 2px 5px;
@@ -239,13 +242,13 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background: #fafafa;
+      background: #0f1117;
     }
 
     .planner-toolbar {
       padding: 16px 20px 12px;
-      border-bottom: 1px solid #f3f4f6;
-      background: #fff;
+      border-bottom: 1px solid #2a2d3a;
+      background: #1a1d27;
     }
 
     .planner-toolbar .panel-title { margin-bottom: 12px; }
@@ -265,10 +268,10 @@
       transition: all 0.12s;
     }
 
-    .cat-btn-planner[data-cat="M"] { background: var(--c-M-light); color: #be185d; }
-    .cat-btn-planner[data-cat="B"] { background: var(--c-B-light); color: #065f46; }
-    .cat-btn-planner[data-cat="S"] { background: var(--c-S-light); color: #1d4ed8; }
-    .cat-btn-planner[data-cat="-"] { background: var(--c-dash-light); color: #1f2937; }
+    .cat-btn-planner[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); }
+    .cat-btn-planner[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); }
+    .cat-btn-planner[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); }
+    .cat-btn-planner[data-cat="-"] { background: var(--c-dash-light); color: var(--c-dash); }
 
     .cat-btn-planner.active[data-cat="M"] { border-color: var(--c-M); }
     .cat-btn-planner.active[data-cat="B"] { border-color: var(--c-B); }
@@ -277,7 +280,7 @@
 
     .planner-hint {
       font-size: 11px;
-      color: #9ca3af;
+      color: #4b5563;
       margin-left: auto;
       align-self: center;
     }
@@ -290,8 +293,6 @@
 
     .timeline {
       position: relative;
-      /* 16 half-hour slots × 48px */
-      height: 768px;
       margin-left: 52px;
       user-select: none;
     }
@@ -301,17 +302,17 @@
       left: 0;
       right: 0;
       height: 48px;
-      border-top: 1px solid #e5e7eb;
+      border-top: 1px solid #2a2d3a;
     }
 
-    .slot.half { border-top: 1px dashed #e5e7eb; }
+    .slot.half { border-top: 1px dashed #1e2130; }
 
     .slot-label {
       position: absolute;
       left: -52px;
       top: -8px;
       font-size: 11px;
-      color: #9ca3af;
+      color: #4b5563;
       width: 46px;
       text-align: right;
       font-variant-numeric: tabular-nums;
@@ -323,7 +324,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      border-top: 1px solid #e5e7eb;
+      border-top: 1px solid #2a2d3a;
     }
 
     /* drag ghost */
@@ -356,10 +357,10 @@
 
     .time-block:hover { filter: brightness(0.95); }
 
-    .time-block[data-cat="M"] { background: var(--c-M-light); color: #9d174d; border-left: 3px solid var(--c-M); }
-    .time-block[data-cat="B"] { background: var(--c-B-light); color: #065f46; border-left: 3px solid var(--c-B); }
-    .time-block[data-cat="S"] { background: var(--c-S-light); color: #1e40af; border-left: 3px solid var(--c-S); }
-    .time-block[data-cat="-"] { background: var(--c-dash-light); color: #1f2937; border-left: 3px solid var(--c-dash); }
+    .time-block[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); border-left: 3px solid var(--c-M); }
+    .time-block[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); border-left: 3px solid var(--c-B); }
+    .time-block[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); border-left: 3px solid var(--c-S); }
+    .time-block[data-cat="-"] { background: var(--c-dash-light); color: var(--c-dash); border-left: 3px solid var(--c-dash); }
 
     .block-label {
       flex: 1;
@@ -388,11 +389,11 @@
     /* ── POPOVER ── */
     .popover {
       position: fixed;
-      background: #fff;
-      border: 1px solid #e5e7eb;
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
       border-radius: 10px;
       padding: 12px 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       z-index: 100;
       min-width: 200px;
       display: none;
@@ -410,13 +411,16 @@
     .popover input[type="text"] {
       flex: 1;
       padding: 5px 8px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #2a2d3a;
       border-radius: 5px;
       font-size: 12px;
       outline: none;
+      background: #0f1117;
+      color: #e5e7eb;
     }
 
-    .popover input[type="text"]:focus { border-color: #d1d5db; }
+    .popover input[type="text"]::placeholder { color: #4b5563; }
+    .popover input[type="text"]:focus { border-color: #3f4459; }
 
     .popover .cat-btns-pop {
       display: flex;
@@ -436,10 +440,10 @@
       justify-content: center;
     }
 
-    .cat-btn-pop[data-cat="M"] { background: var(--c-M-light); color: #be185d; }
-    .cat-btn-pop[data-cat="B"] { background: var(--c-B-light); color: #065f46; }
-    .cat-btn-pop[data-cat="S"] { background: var(--c-S-light); color: #1d4ed8; }
-    .cat-btn-pop[data-cat="-"] { background: var(--c-dash-light); color: #1f2937; }
+    .cat-btn-pop[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); }
+    .cat-btn-pop[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); }
+    .cat-btn-pop[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); }
+    .cat-btn-pop[data-cat="-"] { background: var(--c-dash-light); color: var(--c-dash); }
 
     .cat-btn-pop.active[data-cat="M"] { border-color: var(--c-M); }
     .cat-btn-pop.active[data-cat="B"] { border-color: var(--c-B); }
@@ -449,16 +453,16 @@
     .popover-delete {
       width: 100%;
       padding: 5px;
-      border: 1px solid #fecaca;
+      border: 1px solid #4a1a1a;
       border-radius: 5px;
-      background: #fef2f2;
-      color: #dc2626;
+      background: #2a1010;
+      color: #f87171;
       font-size: 12px;
       cursor: pointer;
       transition: background 0.1s;
     }
 
-    .popover-delete:hover { background: #fee2e2; }
+    .popover-delete:hover { background: #3a1515; }
   </style>
 </head>
 <body>
@@ -490,7 +494,7 @@
   <!-- ── RIGHT: TIME BLOCK PLANNER ── -->
   <div class="planner-panel">
     <div class="planner-toolbar">
-      <div class="panel-title">Time Blocks — 9 AM to 5 PM</div>
+      <div class="panel-title">Time Blocks — 8 AM to 6 PM</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div class="cat-btns-planner" id="planner-cats">
           <button class="cat-btn-planner active" data-cat="M">M</button>
@@ -526,13 +530,13 @@
 
 <script>
   // ── Constants ──
-  const START_HOUR = 9;
-  const END_HOUR = 17;
-  const TOTAL_MINS = (END_HOUR - START_HOUR) * 60; // 480
+  const START_HOUR = 8;
+  const END_HOUR = 18;
+  const TOTAL_MINS = (END_HOUR - START_HOUR) * 60; // 600
   const SLOT_HEIGHT = 48; // px per 30 min
   const PX_PER_MIN = SLOT_HEIGHT / 30;
   const SNAP = 15; // minutes
-  const TIMELINE_HEIGHT = TOTAL_MINS * PX_PER_MIN; // 768px
+  const TIMELINE_HEIGHT = TOTAL_MINS * PX_PER_MIN; // 960px
 
   // ── State ──
   let checklistItems = [];
@@ -594,8 +598,8 @@
     // label for 5pm
     const endLabel = document.createElement('span');
     endLabel.className = 'slot-label';
-    endLabel.style.cssText = `position:absolute;left:-52px;bottom:-8px;font-size:11px;color:#9ca3af;width:46px;text-align:right;`;
-    endLabel.textContent = '5:00 PM';
+    endLabel.style.cssText = `position:absolute;left:-52px;bottom:-8px;font-size:11px;color:#4b5563;width:46px;text-align:right;`;
+    endLabel.textContent = '6:00 PM';
     timeline.appendChild(endLabel);
   }
 
