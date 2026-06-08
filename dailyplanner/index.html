@@ -147,10 +147,12 @@
     .cat-btn[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); }
     .cat-btn[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); }
     .cat-btn[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); }
+    .cat-btn[data-cat="-"] { background: var(--c-dash-light); color: var(--c-dash); }
 
     .cat-btn.active[data-cat="M"] { border-color: var(--c-M); }
     .cat-btn.active[data-cat="B"] { border-color: var(--c-B); }
     .cat-btn.active[data-cat="S"] { border-color: var(--c-S); }
+    .cat-btn.active[data-cat="-"] { border-color: var(--c-dash); }
 
     .add-btn {
       width: 28px;
@@ -221,6 +223,7 @@
     .item-badge[data-cat="M"] { background: var(--c-M-light); color: var(--c-M); }
     .item-badge[data-cat="B"] { background: var(--c-B-light); color: var(--c-B); }
     .item-badge[data-cat="S"] { background: var(--c-S-light); color: var(--c-S); }
+    .item-badge[data-cat="-"] { background: var(--c-dash-light); color: var(--c-dash); }
 
     .item-text {
       flex: 1;
@@ -599,6 +602,7 @@
             <button class="cat-btn active" data-cat="M">M</button>
             <button class="cat-btn" data-cat="B">B</button>
             <button class="cat-btn" data-cat="S">S</button>
+            <button class="cat-btn" data-cat="-">—</button>
           </div>
           <button class="add-btn" id="add-item-btn">+</button>
         </div>
