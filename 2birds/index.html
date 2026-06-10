@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2Birds — NYC Exploration Map</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <div id="toolbar-title">2birds</div>
+    <div id="toolbar-modes">
+      <button class="mode-btn active" data-mode="select" title="Select / Pan">
+        <svg viewBox="0 0 24 24"><path d="M4 4l7 18 3-7 7-3L4 4z"/></svg>
+        Select
+      </button>
+      <button class="mode-btn" data-mode="add-hub" title="Add Hub Pin">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        Hub
+      </button>
+      <button class="mode-btn" data-mode="add-bird" title="Add Bird Pin">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg>
+        Bird
+      </button>
+    </div>
+    <button id="export-btn" title="Export JSON">
+      <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/></svg>
+    </button>
+  </div>
+
+  <!-- Search Bar -->
+  <div id="search-container">
+    <div id="search-wrapper">
+      <svg id="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="search-input" type="text" placeholder="Search address, landmark, or lat,lng…" autocomplete="off" />
+      <button id="search-clear" title="Clear">✕</button>
+    </div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Right-click Context Menu -->
+  <div id="context-menu">
+    <div class="ctx-item" id="ctx-add-hub">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+      Add Hub here
+    </div>
+    <div class="ctx-item" id="ctx-add-bird">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg>
+      Add Bird here
+    </div>
+  </div>
+
+  <!-- Category Picker Modal -->
+  <div id="category-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-title">Choose a category</div>
+      <div id="category-grid"></div>
+      <button class="modal-cancel" id="category-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div id="detail-panel" class="panel-closed">
+    <div id="panel-header">
+      <span id="panel-type-badge"></span>
+      <button id="panel-close" title="Close">✕</button>
+    </div>
+    <div id="panel-body">
+      <div class="field-group">
+        <label>Name</label>
+        <input id="field-name" type="text" placeholder="Give this place a name…" />
+      </div>
+      <div class="field-group">
+        <label>Blurb</label>
+        <textarea id="field-blurb" placeholder="Notes, why it's worth it…" rows="3"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Link</label>
+        <div id="link-row">
+          <input id="field-link" type="url" placeholder="https://…" />
+          <a id="link-open" href="#" target="_blank" rel="noopener" title="Open link">↗</a>
+        </div>
+      </div>
+      <div id="panel-connections"></div>
+    </div>
+    <div id="panel-footer">
+      <button id="btn-delete" class="btn-danger">Delete pin</button>
+    </div>
+  </div>
+
+  <!-- Drag connection SVG overlay -->
+  <svg id="drag-svg" style="position:fixed;top:0;left:0;pointer-events:none;z-index:800;width:100%;height:100%;display:none;">
+    <line id="drag-line" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+  </svg>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
