@@ -21,6 +21,7 @@ let contextLatLng = null;       // where right-click landed
 // drag-to-connect
 let dragSourceId = null;
 let dragSourceScreenPos = null;
+let dragJustConnected = false;  // suppresses the click that fires after a successful drag
 
 // leaflet marker registry  { id -> L.Marker }
 const markers = {};
@@ -143,6 +144,8 @@ function placeMarker(pin) {
 
   m.on('click', e => {
     L.DomEvent.stopPropagation(e);
+    if (mode !== 'select') return;   // only respond to clicks in select mode
+    if (dragJustConnected) { dragJustConnected = false; return; }  // swallow post-drag click
     onPinClick(pin.id);
   });
 }
@@ -378,7 +381,12 @@ function onMarkerPointerDown(e, pinId) {
       }
     }
     if (targetPinId && targetPinId !== pinId) {
+      const beforeCount = state.connections.length;
       connectPins(pinId, targetPinId);
+      if (state.connections.length > beforeCount) {
+        // A connection was made — suppress the click event that fires next on the target marker
+        dragJustConnected = true;
+      }
     }
   }
 
