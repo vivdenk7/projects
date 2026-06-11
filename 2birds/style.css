@@ -456,6 +456,14 @@ html, body {
   border: 2.5px solid rgba(255,255,255,.9);
   box-shadow: 0 2px 6px rgba(0,0,0,.25);
   cursor: grab;
+  transition: transform .22s cubic-bezier(.4,0,.2,1), opacity .22s;
+  transform-origin: center;
+}
+
+/* Bird in dot state (no hub selected / hub not linked) */
+.bird-pin-dot .bird-marker {
+  transform: scale(0.27);
+  opacity: 0.55;
 }
 
 /* Drag state */

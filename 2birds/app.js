@@ -107,6 +107,29 @@ function refreshMarkerIcon(pin) {
   }
 }
 
+/* ─── Bird dot / expand helpers ─────────────────────────────── */
+
+function collapseAllBirds() {
+  state.pins.filter(p => p.type === 'bird').forEach(p => {
+    const m = markers[p.id];
+    if (!m) return;
+    const el = m.getElement();
+    if (el) el.classList.add('bird-pin-dot');
+  });
+}
+
+function expandBirdsForHub(hubId) {
+  const birdIds = new Set(
+    state.connections.filter(c => c.hubId === hubId).map(c => c.birdId)
+  );
+  birdIds.forEach(bid => {
+    const m = markers[bid];
+    if (!m) return;
+    const el = m.getElement();
+    if (el) el.classList.remove('bird-pin-dot');
+  });
+}
+
 /* ─── Connection lines ───────────────────────────────────────── */
 
 function clearLines() {
@@ -135,6 +158,12 @@ function placeMarker(pin) {
   const icon = pin.type === 'hub' ? hubIcon(hubCount(pin.id)) : birdIcon(pin.category);
   const m = L.marker([pin.lat, pin.lng], { icon, draggable: false }).addTo(map);
   markers[pin.id] = m;
+
+  // Birds start as dots; they expand only when their hub is selected
+  if (pin.type === 'bird') {
+    const el = m.getElement();
+    if (el) el.classList.add('bird-pin-dot');
+  }
 
   // pointer-down on the marker element → start drag-to-connect
   const el = m.getElement();
@@ -220,8 +249,12 @@ function connectPins(idA, idB) {
   const hub = state.pins.find(p => p.id === hubId);
   if (hub) refreshMarkerIcon(hub);
 
-  // if hub is currently selected, redraw lines
-  if (selectedPinId === hubId) drawLinesForHub(hubId);
+  // if hub is currently selected, redraw lines and expand the newly linked bird
+  if (selectedPinId === hubId) {
+    drawLinesForHub(hubId);
+    const bm = markers[birdId];
+    if (bm) { const el = bm.getElement(); if (el) el.classList.remove('bird-pin-dot'); }
+  }
   // if bird is selected and its hub is now connected, refresh panel
   if (selectedPinId === birdId || selectedPinId === hubId) renderPanel();
 }
@@ -243,9 +276,15 @@ function openPanel(id) {
   const pin = state.pins.find(p => p.id === id);
   if (!pin) return;
 
-  // draw lines if hub
-  if (pin.type === 'hub') drawLinesForHub(id);
-  else clearLines();
+  // draw lines if hub; manage bird dot/expand states
+  if (pin.type === 'hub') {
+    drawLinesForHub(id);
+    collapseAllBirds();
+    expandBirdsForHub(id);
+  } else {
+    clearLines();
+    collapseAllBirds();
+  }
 
   renderPanel();
   document.getElementById('detail-panel').className = 'panel-open';
@@ -254,6 +293,7 @@ function openPanel(id) {
 function closePanel() {
   selectedPinId = null;
   clearLines();
+  collapseAllBirds();
   document.getElementById('detail-panel').className = 'panel-closed';
 }
 
