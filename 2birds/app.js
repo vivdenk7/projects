@@ -450,8 +450,9 @@ function showCategoryModal() {
       <div class="cat-dot" style="background:${cat.color}22;color:${cat.color}">${cat.emoji}</div>
       ${cat.label}`;
     btn.addEventListener('click', () => {
+      const latlng = pendingBirdLatLng;
       hideCategoryModal();
-      if (pendingBirdLatLng) addPin('bird', pendingBirdLatLng, key);
+      if (latlng) addPin('bird', latlng, key);
     });
     grid.appendChild(btn);
   });
