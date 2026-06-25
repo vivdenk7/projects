@@ -9,7 +9,6 @@
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.26.10/babel.min.js"></script>
-  <script>Babel.registerPreset('react-classic', { presets: [['react', { runtime: 'classic' }]] });</script>
   <style>
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; background: #f8fafc; }
@@ -57,7 +56,7 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel" data-presets="react-classic">
+  <script id="app-src" type="text/plain">
 const {
   useState, useEffect, useReducer, useContext, createContext,
   useRef, useMemo, useCallback
@@ -1478,6 +1477,15 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var src = document.getElementById('app-src').textContent;
+      var result = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] });
+      var s = document.createElement('script');
+      s.textContent = result.code;
+      document.body.appendChild(s);
+    });
   </script>
 </body>
 </html>
