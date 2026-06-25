@@ -45,7 +45,7 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    getAnalytics(app);
+    try { getAnalytics(app); } catch (_) {}
     const db = getFirestore(app);
 
     // Expose everything the Babel script needs via window
@@ -1350,29 +1350,29 @@ function App() {
       onSnapshot(collection(db, 'events'), snap => {
         localDispatch({ type: 'SET_EVENTS', events: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
         check();
-      }),
+      }, () => check()),
       onSnapshot(collection(db, 'comments'), snap => {
         localDispatch({ type: 'SET_COMMENTS', comments: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
         check();
-      }),
+      }, () => check()),
       onSnapshot(collection(db, 'tripIdeas'), snap => {
         localDispatch({ type: 'SET_TRIP_IDEAS', tripIdeas: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
         check();
-      }),
+      }, () => check()),
       onSnapshot(doc(db, 'settings', 'pto'), snap => {
         localDispatch({ type: 'SET_PTO', pto: snap.exists() ? snap.data() : { totalDays: 0, lastTripStart: '', lastTripEnd: '', lastTripDays: '' } });
         check();
-      }),
+      }, () => check()),
       onSnapshot(doc(db, 'settings', 'notes'), snap => {
         localDispatch({ type: 'SET_NOTES', notes: snap.exists() ? (snap.data().notes || '') : '' });
         check();
-      }),
+      }, () => check()),
       onSnapshot(collection(db, 'dayNotes'), snap => {
         const dayNotes = {};
         snap.docs.forEach(d => { dayNotes[d.id] = d.data(); });
         localDispatch({ type: 'SET_DAY_NOTES', dayNotes });
         check();
-      }),
+      }, () => check()),
     ];
 
     return () => unsubs.forEach(u => u());
