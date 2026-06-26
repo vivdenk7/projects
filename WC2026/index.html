@@ -794,7 +794,10 @@ function refreshAll() {
   updateBanners();
   renderBracket();
   renderLeaderboard();
-  if (state.isAdmin) renderAdmin();
+  // Only re-render admin if the panel is not currently visible to the user,
+  // so that live Firestore updates don't wipe form fields mid-edit.
+  const adminView = document.getElementById('admin-view');
+  if (state.isAdmin && adminView && adminView.classList.contains('hidden')) renderAdmin();
 }
 
 // ════════════════════════════════════════════════
@@ -1138,12 +1141,14 @@ function renderAdmin() {
   const matches = state.bracket.matches || [];
   const getM = id => matches.find(m => m.id === id) || { id, teamA: null, teamB: null, actualWinner: null, actualScore: null };
 
-  const dlVal = state.config.deadline
+  const dlDate = state.config.deadline
     ? (state.config.deadline instanceof Timestamp
         ? state.config.deadline.toDate()
         : new Date(state.config.deadline)
-      ).toISOString().slice(0, 16)
-    : '';
+      )
+    : null;
+  const dlDateVal = dlDate ? dlDate.toISOString().slice(0, 10) : '';
+  const dlTimeVal = dlDate ? dlDate.toISOString().slice(11, 16) : '23:59';
 
   let html = '';
 
@@ -1152,7 +1157,8 @@ function renderAdmin() {
     <h3>⚙️ Settings</h3>
     <div class="form-row">
       <label>Deadline</label>
-      <input class="form-input" type="datetime-local" id="cfg-deadline" value="${dlVal}" />
+      <input class="form-input" type="date" id="cfg-deadline-date" value="${dlDateVal}" style="max-width:160px" />
+      <input class="form-input" type="time" id="cfg-deadline-time" value="${dlTimeVal}" style="max-width:110px" />
       <button class="btn btn-primary btn-sm" onclick="saveConfig()">Save</button>
     </div>
     <div class="form-row" style="margin-top:4px">
@@ -1278,12 +1284,19 @@ function renderAdmin() {
 
 // ── Admin save actions ────────────────────────────
 window.saveConfig = async function() {
-  const dlInput = document.getElementById('cfg-deadline').value;
+  const dateVal = document.getElementById('cfg-deadline-date').value;
+  const timeVal = document.getElementById('cfg-deadline-time').value;
   const published = document.getElementById('cfg-published').checked;
-  await setDoc(doc(db, 'config', 'main'), {
-    deadline: dlInput ? Timestamp.fromDate(new Date(dlInput)) : null,
-    published
-  }, { merge: true });
+  let deadlineValue = null;
+  if (dateVal) {
+    deadlineValue = Timestamp.fromDate(new Date(`${dateVal}T${timeVal || '23:59'}`));
+  }
+  try {
+    await setDoc(doc(db, 'config', 'main'), { deadline: deadlineValue, published }, { merge: true });
+    alert('Settings saved.');
+  } catch (e) {
+    alert(`Failed to save settings: ${e.message}`);
+  }
 };
 
 window.saveBracket = async function() {
@@ -1309,8 +1322,12 @@ window.saveBracket = async function() {
     m.teamB = { type: typeBEl.value, name: nameBEl.value.trim(), flag: flagBEl.value.trim() };
   }
 
-  await setDoc(doc(db, 'bracket', 'main'), { matches: existing });
-  alert('Bracket saved!');
+  try {
+    await setDoc(doc(db, 'bracket', 'main'), { matches: existing });
+    alert('Bracket saved!');
+  } catch (e) {
+    alert(`Failed to save bracket: ${e.message}`);
+  }
 };
 
 window.saveResults = async function() {
@@ -1328,14 +1345,22 @@ window.saveResults = async function() {
     m.actualWinner = winEl.value || null;
     m.actualScore  = scoreEl.value.trim() || null;
   }
-  await setDoc(doc(db, 'bracket', 'main'), { matches });
-  alert('Results saved!');
+  try {
+    await setDoc(doc(db, 'bracket', 'main'), { matches });
+    alert('Results saved!');
+  } catch (e) {
+    alert(`Failed to save results: ${e.message}`);
+  }
 };
 
 window.savePropPoints = async function(userName) {
   const safeId = userName.replace(/[^a-zA-Z0-9]/g, '_');
   const pts = parseInt(document.getElementById(`pp-${safeId}`)?.value ?? 0, 10);
-  await setDoc(doc(db, 'submissions', userName), { propPoints: pts }, { merge: true });
+  try {
+    await setDoc(doc(db, 'submissions', userName), { propPoints: pts }, { merge: true });
+  } catch (e) {
+    alert(`Failed to save prop points for ${userName}: ${e.message}`);
+  }
 };
 
 // ════════════════════════════════════════════════
