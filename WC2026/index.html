@@ -1096,14 +1096,14 @@ function buildMatchCard(matchId, match, picks) {
   return `<div class="match-card${match.actualWinner ? ' has-result' : ''}">
     <div class="match-team ${classA} ${selA} ${clickable ? 'clickable' : ''}" ${teamClickA}>
       <span class="team-name ${tA.tbd ? 'tbd' : ''}">${esc(tA.name)}</span>
-      ${tA.flag ? `<span class="team-flag">${tA.flag}</span>` : ''}
       ${pick.winner === 'A' ? '<div class="pick-dot"></div>' : ''}
+      ${tA.flag ? `<span class="team-flag">${tA.flag}</span>` : ''}
     </div>
     ${divider}
     <div class="match-team ${classB} ${selB} ${clickable ? 'clickable' : ''}" ${teamClickB}>
       <span class="team-name ${tB.tbd ? 'tbd' : ''}">${esc(tB.name)}</span>
-      ${tB.flag ? `<span class="team-flag">${tB.flag}</span>` : ''}
       ${pick.winner === 'B' ? '<div class="pick-dot"></div>' : ''}
+      ${tB.flag ? `<span class="team-flag">${tB.flag}</span>` : ''}
     </div>
     ${scoreInput}
   </div>`;
