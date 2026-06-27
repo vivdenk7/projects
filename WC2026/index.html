@@ -640,35 +640,76 @@ const FIREBASE_CONFIG = {
 const ADMIN_PASSCODE = "elcuarto"; // ← change this before sharing
 
 // ════════════════════════════════════════════════
-//  BRACKET STRUCTURE  (fixed 16-team knockout)
+//  BRACKET STRUCTURE  (32-team knockout, WC2026)
 // ════════════════════════════════════════════════
-const ROUNDS_LAYOUT = [
-  { label: 'Round of 16', ids: ['r16_1','r16_2','r16_3','r16_4','r16_5','r16_6','r16_7','r16_8'] },
-  { label: 'Quarterfinals', ids: ['qf_1','qf_2','qf_3','qf_4'] },
-  { label: 'Semifinals', ids: ['sf_1','sf_2'] },
-  { label: 'Final', ids: ['final'] }
-];
-
 const MATCH_META = {
-  r16_1: { round:'R16', label:'Match 1',     next:'qf_1',  nextSlot:'A' },
-  r16_2: { round:'R16', label:'Match 2',     next:'qf_1',  nextSlot:'B' },
-  r16_3: { round:'R16', label:'Match 3',     next:'qf_2',  nextSlot:'A' },
-  r16_4: { round:'R16', label:'Match 4',     next:'qf_2',  nextSlot:'B' },
-  r16_5: { round:'R16', label:'Match 5',     next:'qf_3',  nextSlot:'A' },
-  r16_6: { round:'R16', label:'Match 6',     next:'qf_3',  nextSlot:'B' },
-  r16_7: { round:'R16', label:'Match 7',     next:'qf_4',  nextSlot:'A' },
-  r16_8: { round:'R16', label:'Match 8',     next:'qf_4',  nextSlot:'B' },
-  qf_1:  { round:'QF',  label:'Quarterfinal 1', next:'sf_1', nextSlot:'A' },
-  qf_2:  { round:'QF',  label:'Quarterfinal 2', next:'sf_1', nextSlot:'B' },
-  qf_3:  { round:'QF',  label:'Quarterfinal 3', next:'sf_2', nextSlot:'A' },
-  qf_4:  { round:'QF',  label:'Quarterfinal 4', next:'sf_2', nextSlot:'B' },
-  sf_1:  { round:'SF',  label:'Semifinal 1', next:'final', nextSlot:'A' },
-  sf_2:  { round:'SF',  label:'Semifinal 2', next:'final', nextSlot:'B' },
-  third: { round:'3RD', label:'3rd Place',   next:null,    nextSlot:null },
-  final: { round:'F',   label:'Final',       next:null,    nextSlot:null }
+  r32_1:  { round:'R32', label:'R32 Match 1',  next:'r16_1', nextSlot:'A' },
+  r32_2:  { round:'R32', label:'R32 Match 2',  next:'r16_1', nextSlot:'B' },
+  r32_3:  { round:'R32', label:'R32 Match 3',  next:'r16_2', nextSlot:'A' },
+  r32_4:  { round:'R32', label:'R32 Match 4',  next:'r16_2', nextSlot:'B' },
+  r32_5:  { round:'R32', label:'R32 Match 5',  next:'r16_3', nextSlot:'A' },
+  r32_6:  { round:'R32', label:'R32 Match 6',  next:'r16_3', nextSlot:'B' },
+  r32_7:  { round:'R32', label:'R32 Match 7',  next:'r16_4', nextSlot:'A' },
+  r32_8:  { round:'R32', label:'R32 Match 8',  next:'r16_4', nextSlot:'B' },
+  r32_9:  { round:'R32', label:'R32 Match 9',  next:'r16_5', nextSlot:'A' },
+  r32_10: { round:'R32', label:'R32 Match 10', next:'r16_5', nextSlot:'B' },
+  r32_11: { round:'R32', label:'R32 Match 11', next:'r16_6', nextSlot:'A' },
+  r32_12: { round:'R32', label:'R32 Match 12', next:'r16_6', nextSlot:'B' },
+  r32_13: { round:'R32', label:'R32 Match 13', next:'r16_7', nextSlot:'A' },
+  r32_14: { round:'R32', label:'R32 Match 14', next:'r16_7', nextSlot:'B' },
+  r32_15: { round:'R32', label:'R32 Match 15', next:'r16_8', nextSlot:'A' },
+  r32_16: { round:'R32', label:'R32 Match 16', next:'r16_8', nextSlot:'B' },
+  r16_1:  { round:'R16', label:'R16 Match 1',  next:'qf_1',  nextSlot:'A' },
+  r16_2:  { round:'R16', label:'R16 Match 2',  next:'qf_1',  nextSlot:'B' },
+  r16_3:  { round:'R16', label:'R16 Match 3',  next:'qf_2',  nextSlot:'A' },
+  r16_4:  { round:'R16', label:'R16 Match 4',  next:'qf_2',  nextSlot:'B' },
+  r16_5:  { round:'R16', label:'R16 Match 5',  next:'qf_3',  nextSlot:'A' },
+  r16_6:  { round:'R16', label:'R16 Match 6',  next:'qf_3',  nextSlot:'B' },
+  r16_7:  { round:'R16', label:'R16 Match 7',  next:'qf_4',  nextSlot:'A' },
+  r16_8:  { round:'R16', label:'R16 Match 8',  next:'qf_4',  nextSlot:'B' },
+  qf_1:   { round:'QF',  label:'Quarterfinal 1', next:'sf_1', nextSlot:'A' },
+  qf_2:   { round:'QF',  label:'Quarterfinal 2', next:'sf_1', nextSlot:'B' },
+  qf_3:   { round:'QF',  label:'Quarterfinal 3', next:'sf_2', nextSlot:'A' },
+  qf_4:   { round:'QF',  label:'Quarterfinal 4', next:'sf_2', nextSlot:'B' },
+  sf_1:   { round:'SF',  label:'Semifinal 1',  next:'final', nextSlot:'A' },
+  sf_2:   { round:'SF',  label:'Semifinal 2',  next:'final', nextSlot:'B' },
+  third:  { round:'3RD', label:'3rd Place',    next:null,    nextSlot:null },
+  final:  { round:'F',   label:'Final',        next:null,    nextSlot:null }
 };
 
-const POINTS_BY_ROUND = { R16: 1, QF: 2, SF: 3, '3RD': 1, F: 4 };
+const POINTS_BY_ROUND = { R32: 1, R16: 2, QF: 3, SF: 4, '3RD': 1, F: 5 };
+
+const FLAG_MAP = {
+  'Argentina':'🇦🇷','Brazil':'🇧🇷','Ecuador':'🇪🇨','Uruguay':'🇺🇾','Colombia':'🇨🇴',
+  'Venezuela':'🇻🇪','Bolivia':'🇧🇴','Paraguay':'🇵🇾','Chile':'🇨🇱','Peru':'🇵🇪',
+  'France':'🇫🇷','Germany':'🇩🇪','Spain':'🇪🇸','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Portugal':'🇵🇹',
+  'Netherlands':'🇳🇱','Italy':'🇮🇹','Belgium':'🇧🇪','Croatia':'🇭🇷','Switzerland':'🇨🇭',
+  'Denmark':'🇩🇰','Austria':'🇦🇹','Poland':'🇵🇱','Czech Republic':'🇨🇿','Czechia':'🇨🇿',
+  'Serbia':'🇷🇸','Turkey':'🇹🇷','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Hungary':'🇭🇺','Slovakia':'🇸🇰',
+  'Romania':'🇷🇴','Albania':'🇦🇱','Iceland':'🇮🇸','Slovenia':'🇸🇮','Ukraine':'🇺🇦',
+  'Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Greece':'🇬🇷','Norway':'🇳🇴','Sweden':'🇸🇪','Finland':'🇫🇮',
+  'Georgia':'🇬🇪',
+  'USA':'🇺🇸','United States':'🇺🇸','Mexico':'🇲🇽','Canada':'🇨🇦','Panama':'🇵🇦',
+  'Costa Rica':'🇨🇷','Honduras':'🇭🇳','Jamaica':'🇯🇲','El Salvador':'🇸🇻','Haiti':'🇭🇹',
+  'Trinidad and Tobago':'🇹🇹','Cuba':'🇨🇺','Guatemala':'🇬🇹',
+  'Morocco':'🇲🇦','Senegal':'🇸🇳','Egypt':'🇪🇬','Nigeria':'🇳🇬','Cameroon':'🇨🇲',
+  'Ghana':'🇬🇭','Ivory Coast':'🇨🇮',"Côte d'Ivoire":'🇨🇮','Mali':'🇲🇱','Algeria':'🇩🇿',
+  'Tunisia':'🇹🇳','South Africa':'🇿🇦','DR Congo':'🇨🇩','Congo':'🇨🇬','Mozambique':'🇲🇿',
+  'Tanzania':'🇹🇿','Uganda':'🇺🇬','Cape Verde':'🇨🇻','Zambia':'🇿🇲','Zimbabwe':'🇿🇼',
+  'Japan':'🇯🇵','South Korea':'🇰🇷','Korea Republic':'🇰🇷','Australia':'🇦🇺','Iran':'🇮🇷',
+  'Saudi Arabia':'🇸🇦','Qatar':'🇶🇦','China':'🇨🇳','Uzbekistan':'🇺🇿','Iraq':'🇮🇶',
+  'Jordan':'🇯🇴','Oman':'🇴🇲','UAE':'🇦🇪','United Arab Emirates':'🇦🇪','Bahrain':'🇧🇭',
+  'Kuwait':'🇰🇼','New Zealand':'🇳🇿','Indonesia':'🇮🇩',
+};
+
+// Reverse of MATCH_META.next/nextSlot: for each match, which match feeds into slot A and slot B.
+const FEEDERS = {};
+for (const [id, meta] of Object.entries(MATCH_META)) {
+  if (meta.next) {
+    if (!FEEDERS[meta.next]) FEEDERS[meta.next] = {};
+    FEEDERS[meta.next][meta.nextSlot] = id;
+  }
+}
 
 const PROP_DEFS = [
   { key:'goldenBall',      label:'🏅 Golden Ball',                  placeholder:'Best player of the tournament', type:'text' },
@@ -737,8 +778,24 @@ function getMatch(id) {
 }
 
 function teamInfo(slot) {
-  if (!slot || slot.type === 'open') return { name: 'TBD', flag: '❓', tbd: true };
-  return { name: slot.name || 'TBD', flag: slot.flag || '', tbd: !slot.name };
+  if (!slot || slot.type === 'open') return { name: 'TBD', flag: '', tbd: true };
+  const name = slot.name || '';
+  const flag = slot.flag || FLAG_MAP[name] || '';
+  return { name: name || 'TBD', flag, tbd: !name };
+}
+
+// Walk backwards through picks to resolve the team a user has predicted for a given slot.
+// Falls back to TBD if no pick exists or the bracket team is already known.
+function resolvedTeam(matchId, slot, picks) {
+  const match = getMatch(matchId);
+  if (!match) return { name: 'TBD', flag: '❓', tbd: true };
+  const ti = teamInfo(slot === 'A' ? match.teamA : match.teamB);
+  if (!ti.tbd) return ti;
+  const feederMatchId = (FEEDERS[matchId] || {})[slot];
+  if (!feederMatchId) return ti;
+  const feederPick = picks[feederMatchId];
+  if (!feederPick?.winner) return ti;
+  return resolvedTeam(feederMatchId, feederPick.winner, picks);
 }
 
 function computeScore(submission) {
@@ -869,75 +926,131 @@ function renderBracket() {
   const container = document.getElementById('bracket-container');
   if (!container) return;
 
-  let html = '<div class="bracket-wrap">';
+  // Each R16 match occupies one row. Later rounds span 2× more rows per match,
+  // naturally centering each match at the midpoint of its two parents.
+  const SLOT     = 110; // px — tall enough for a match card with score input
+  const C_MATCH  = 180; // equal to match card width — eliminates gap before connector
+  const C_CONN   = 28;
+  const C_ENTRY  = 20;
+  const gridCols = `${C_MATCH}px ${C_CONN}px ${C_ENTRY}px ${C_MATCH}px ${C_CONN}px ${C_ENTRY}px ${C_MATCH}px ${C_CONN}px ${C_ENTRY}px ${C_MATCH}px ${C_CONN}px ${C_ENTRY}px ${C_MATCH}px`;
 
-  for (let ri = 0; ri < ROUNDS_LAYOUT.length; ri++) {
-    const round = ROUNDS_LAYOUT[ri];
-    const count = round.ids.length;
+  const cells = [];
 
-    // connector column coming in from left (not for first round)
-    if (ri > 0) {
-      const prevCount = ROUNDS_LAYOUT[ri - 1].ids.length;
-      html += buildConnectorCol(prevCount, count);
-    }
-
-    html += `<div class="round-col">`;
-    html += `<div class="round-label">${round.label}</div>`;
-    html += `<div class="round-matches">`;
-
-    for (const matchId of round.ids) {
-      const match = getMatch(matchId);
-      html += `<div class="match-slot">${buildMatchCard(matchId, match, picks)}</div>`;
-    }
-
-    html += '</div></div>';
+  // Match cell: centered within its row span.
+  // Use a stub when Firestore has no entry yet so resolvedTeam can still propagate picks.
+  function mCell(col, r1, r2, id) {
+    const m = getMatch(id) || { id, teamA: null, teamB: null, actualWinner: null, actualScore: null };
+    return `<div style="grid-column:${col};grid-row:${r1}/${r2};display:flex;align-items:center;">${buildMatchCard(id, m, picks)}</div>`;
   }
 
-  html += '</div>';
-  container.innerHTML = html;
+  // Connector cell: two halves. The boundary between halves aligns with the match card's
+  // vertical center. Each half draws:
+  //   isTop=true  — top half: exit line from top match (border-bottom at match center)
+  //                 bottom half: vertical bar (border-right) + meeting horizontal (border-bottom)
+  //   isTop=false — top half: vertical bar (border-right) [meeting horizontal arrives from above cell]
+  //                 bottom half: exit line from bottom match (border-top at match center)
+  // Together a top+bottom pair draws the full ┤ bracket arm with exit lines at both match centers.
+  function cCell(col, r1, r2, isTop) {
+    const V = `border-right:1px solid var(--border);`;
+    const H = `border:1px solid var(--border);`;
+    let topHalf, botHalf;
+    if (isTop) {
+      topHalf = `<div style="flex:1;border-bottom:1px solid var(--border);"></div>`;
+      botHalf = `<div style="flex:1;${V}border-bottom:1px solid var(--border);"></div>`;
+    } else {
+      topHalf = `<div style="flex:1;${V}"></div>`;
+      botHalf = `<div style="flex:1;border-top:1px solid var(--border);"></div>`;
+    }
+    return `<div style="grid-column:${col};grid-row:${r1}/${r2};display:flex;flex-direction:column;">${topHalf}${botHalf}</div>`;
+  }
 
-  // Third place
+  // Entry cell: horizontal line pinned to vertical center of the span,
+  // landing at the same y as the connector meeting point.
+  function eCell(col, r1, r2) {
+    return `<div style="grid-column:${col};grid-row:${r1}/${r2};display:flex;align-items:center;"><div style="width:100%;border-top:1px solid var(--border);"></div></div>`;
+  }
+
+  // ── R32  (col 1, rows 1–16, 1 row each) ─────────────────────────────────
+  ['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
+   'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16']
+    .forEach((id, i) => cells.push(mCell(1, i+1, i+2, id)));
+
+  // ── Connector R32→R16  (col 2, 16 cells of 1 row each) ─────────────────
+  for (let i = 0; i < 16; i++) cells.push(cCell(2, i+1, i+2, i%2===0));
+
+  // ── Entry R32→R16  (col 3, 8 cells of 2 rows each) ──────────────────────
+  for (let i = 0; i < 8; i++)  cells.push(eCell(3, i*2+1, i*2+3));
+
+  // ── R16  (col 4, 8 cells of 2 rows each) ─────────────────────────────────
+  ['r16_1','r16_2','r16_3','r16_4','r16_5','r16_6','r16_7','r16_8']
+    .forEach((id, i) => cells.push(mCell(4, i*2+1, i*2+3, id)));
+
+  // ── Connector R16→QF  (col 5, 8 cells of 2 rows each) ──────────────────
+  for (let i = 0; i < 8; i++)  cells.push(cCell(5, i*2+1, i*2+3, i%2===0));
+
+  // ── Entry R16→QF  (col 6, 4 cells of 4 rows each) ───────────────────────
+  for (let i = 0; i < 4; i++)  cells.push(eCell(6, i*4+1, i*4+5));
+
+  // ── QF  (col 7, 4 cells of 4 rows each) ──────────────────────────────────
+  ['qf_1','qf_2','qf_3','qf_4']
+    .forEach((id, i) => cells.push(mCell(7, i*4+1, i*4+5, id)));
+
+  // ── Connector QF→SF  (col 8, 4 cells of 4 rows each) ───────────────────
+  for (let i = 0; i < 4; i++)  cells.push(cCell(8, i*4+1, i*4+5, i%2===0));
+
+  // ── Entry QF→SF  (col 9, 2 cells of 8 rows each) ────────────────────────
+  for (let i = 0; i < 2; i++)  cells.push(eCell(9, i*8+1, i*8+9));
+
+  // ── SF  (col 10, 2 cells of 8 rows each) ─────────────────────────────────
+  ['sf_1','sf_2']
+    .forEach((id, i) => cells.push(mCell(10, i*8+1, i*8+9, id)));
+
+  // ── Connector SF→Final  (col 11, 2 cells of 8 rows each) ───────────────
+  for (let i = 0; i < 2; i++)  cells.push(cCell(11, i*8+1, i*8+9, i%2===0));
+
+  // ── Entry SF→Final  (col 12, 1 cell of 16 rows) ──────────────────────────
+  cells.push(eCell(12, 1, 17));
+
+  // ── Final  (col 13, 1 cell of 16 rows) ───────────────────────────────────
+  cells.push(mCell(13, 1, 17, 'final'));
+
+  // Round labels sit above the grid in a matching-width flex row
+  const labelCols = [
+    [C_MATCH,          'Round of 32'],
+    [C_CONN + C_ENTRY, ''],
+    [C_MATCH,          'Round of 16'],
+    [C_CONN + C_ENTRY, ''],
+    [C_MATCH,          'Quarterfinals'],
+    [C_CONN + C_ENTRY, ''],
+    [C_MATCH,          'Semifinals'],
+    [C_CONN + C_ENTRY, ''],
+    [C_MATCH,          'Final'],
+  ];
+  const labelHtml = `<div style="display:flex;margin-bottom:10px;flex-shrink:0;">${
+    labelCols.map(([w, t]) =>
+      `<div style="width:${w}px;flex-shrink:0;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">${t}</div>`
+    ).join('')
+  }</div>`;
+
+  const gridHtml = `<div style="display:grid;grid-template-columns:${gridCols};grid-template-rows:repeat(16,${SLOT}px);">${cells.join('')}</div>`;
+
+  container.innerHTML = labelHtml + gridHtml;
+
+  // Third place — separate div below, unaffected by the grid
   const thirdMatch = getMatch('third');
-  const thirdWrap = document.getElementById('third-place-wrap');
-  const thirdContainer = document.getElementById('third-place-container');
-  const thirdHasTeams = thirdMatch && thirdMatch.teamA && thirdMatch.teamB;
-  thirdWrap.classList.toggle('hidden', !thirdHasTeams);
-  if (thirdHasTeams) {
-    thirdContainer.innerHTML = buildMatchCard('third', thirdMatch, picks);
-  }
+  const thirdWrap  = document.getElementById('third-place-wrap');
+  const thirdCont  = document.getElementById('third-place-container');
+  const thirdReady = thirdMatch && thirdMatch.teamA && thirdMatch.teamB;
+  thirdWrap.classList.toggle('hidden', !thirdReady);
+  if (thirdReady) thirdCont.innerHTML = buildMatchCard('third', thirdMatch, picks);
 
   renderProps();
   updateBanners();
 }
 
-function buildConnectorCol(fromCount, toCount) {
-  // fromCount is always 2× toCount in a proper bracket
-  // Build pairs: each pair of "from" matches connects to one "to" match
-  const pairs = toCount;
-  let html = `<div class="connector-col">`;
-  for (let i = 0; i < pairs; i++) {
-    html += `<div class="connector-pair">
-      <div class="connector-half top"></div>
-      <div class="connector-half bot"></div>
-    </div>`;
-  }
-  html += '</div>';
-  // Then the entry lines going into the right round
-  html += `<div class="connector-col">`;
-  for (let i = 0; i < toCount; i++) {
-    html += `<div class="connector-entry"><div class="connector-entry-line"></div></div>`;
-  }
-  html += '</div>';
-  return html;
-}
-
 function buildMatchCard(matchId, match, picks) {
-  if (!match) {
-    return `<div class="match-card-empty">TBD</div>`;
-  }
-
-  const tA = teamInfo(match.teamA);
-  const tB = teamInfo(match.teamB);
+  const tA = resolvedTeam(matchId, 'A', picks);
+  const tB = resolvedTeam(matchId, 'B', picks);
   const pick = picks[matchId] || {};
   const rnd = MATCH_META[matchId]?.round || 'R16';
 
@@ -981,14 +1094,14 @@ function buildMatchCard(matchId, match, picks) {
 
   return `<div class="match-card${match.actualWinner ? ' has-result' : ''}">
     <div class="match-team ${classA} ${selA} ${clickable ? 'clickable' : ''}" ${teamClickA}>
-      <span class="team-flag">${tA.flag}</span>
       <span class="team-name ${tA.tbd ? 'tbd' : ''}">${esc(tA.name)}</span>
+      ${tA.flag ? `<span class="team-flag">${tA.flag}</span>` : ''}
       ${pick.winner === 'A' ? '<div class="pick-dot"></div>' : ''}
     </div>
     ${divider}
     <div class="match-team ${classB} ${selB} ${clickable ? 'clickable' : ''}" ${teamClickB}>
-      <span class="team-flag">${tB.flag}</span>
       <span class="team-name ${tB.tbd ? 'tbd' : ''}">${esc(tB.name)}</span>
+      ${tB.flag ? `<span class="team-flag">${tB.flag}</span>` : ''}
       ${pick.winner === 'B' ? '<div class="pick-dot"></div>' : ''}
     </div>
     ${scoreInput}
@@ -998,9 +1111,34 @@ function buildMatchCard(matchId, match, picks) {
 // ════════════════════════════════════════════════
 //  PICK ACTIONS
 // ════════════════════════════════════════════════
+// Walk forward through MATCH_META and clear any picks that depended on the winner
+// we just removed, so downstream slots don't ghost-reference a now-unset team.
+function cascadeClearPick(matchId) {
+  const meta = MATCH_META[matchId];
+  if (!meta?.next) return;
+  const nextId   = meta.next;
+  const feedSlot = meta.nextSlot; // which slot of nextId our winner fills
+  const base     = state.mySubmission?.picks?.[nextId] || {};
+  const pending  = state.pendingPicks[nextId] || {};
+  const nextPick = { ...base, ...pending };
+  if (nextPick.winner === feedSlot) {
+    state.pendingPicks[nextId] = { winner: null, score: null };
+    cascadeClearPick(nextId);
+  }
+}
+
 window.pickWinner = function(matchId, slot) {
   if (!canEdit()) return;
-  state.pendingPicks[matchId] = { ...(state.pendingPicks[matchId] || {}), winner: slot };
+  const base    = state.mySubmission?.picks?.[matchId] || {};
+  const pending = state.pendingPicks[matchId] || {};
+  const current = { ...base, ...pending };
+  if (current.winner === slot) {
+    // Second click on the same team → deselect and clear downstream
+    state.pendingPicks[matchId] = { winner: null, score: null };
+    cascadeClearPick(matchId);
+  } else {
+    state.pendingPicks[matchId] = { ...current, winner: slot };
+  }
   renderBracket();
 };
 
@@ -1179,6 +1317,7 @@ function renderAdmin() {
     </p>`;
 
   const allRoundGroups = [
+    { label:'Round of 32',  ids:['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8','r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16'] },
     { label:'Round of 16',  ids:['r16_1','r16_2','r16_3','r16_4','r16_5','r16_6','r16_7','r16_8'] },
     { label:'Quarterfinals', ids:['qf_1','qf_2','qf_3','qf_4'] },
     { label:'Semifinals',    ids:['sf_1','sf_2'] },
@@ -1303,6 +1442,8 @@ window.saveBracket = async function() {
   const existing = [...(state.bracket.matches || [])];
 
   const allIds = [
+    'r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
+    'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16',
     'r16_1','r16_2','r16_3','r16_4','r16_5','r16_6','r16_7','r16_8',
     'qf_1','qf_2','qf_3','qf_4','sf_1','sf_2','third','final'
   ];
@@ -1333,6 +1474,8 @@ window.saveBracket = async function() {
 window.saveResults = async function() {
   const matches = [...(state.bracket.matches || [])];
   const allIds = [
+    'r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
+    'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16',
     'r16_1','r16_2','r16_3','r16_4','r16_5','r16_6','r16_7','r16_8',
     'qf_1','qf_2','qf_3','qf_4','sf_1','sf_2','third','final'
   ];
