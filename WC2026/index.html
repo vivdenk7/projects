@@ -761,6 +761,31 @@ for (const [id, meta] of Object.entries(MATCH_META)) {
   }
 }
 
+// Returns {eliminated, correctTeam} for a team slot: eliminated=true means the
+// user's pick chain brought in a team that has already lost a played match.
+function getEliminatedStatus(matchId, slot, picks) {
+  if (matchId === 'third') return { eliminated: false };
+  const feederMatchId = (FEEDERS[matchId] || {})[slot];
+  if (!feederMatchId) return { eliminated: false };
+
+  const feederMatch = getMatch(feederMatchId);
+  const feederPick  = picks[feederMatchId];
+  if (!feederPick?.winner) return { eliminated: false };
+
+  if (feederMatch?.actualWinner && feederPick.winner !== feederMatch.actualWinner) {
+    // User picked the loser in the feeder — the team showing here is out
+    const correctData = feederMatch.actualWinner === 'A' ? feederMatch.teamA : feederMatch.teamB;
+    const ct = teamInfo(correctData);
+    return { eliminated: true, correctTeam: ct.tbd ? null : ct };
+  }
+
+  // No wrong pick in direct feeder — check further back
+  const deeper = getEliminatedStatus(feederMatchId, feederPick.winner, picks);
+  if (deeper.eliminated) return { eliminated: true, correctTeam: null };
+
+  return { eliminated: false };
+}
+
 const PROP_DEFS = [
   { key:'goldenBall',      label:'🏅 Golden Ball',                  placeholder:'Best player of the tournament', type:'text' },
   { key:'goldenBoot',      label:'👟 Golden Boot',                  placeholder:'Top scorer name',               type:'text' },
@@ -1131,11 +1156,15 @@ function buildMatchCard(matchId, match, picks) {
   const pick = picks[matchId] || {};
   const rnd = MATCH_META[matchId]?.round || 'R16';
 
-  // Grading classes
+  // Elimination status — team already lost in an earlier round via a wrong pick
+  const elimA = getEliminatedStatus(matchId, 'A', picks);
+  const elimB = getEliminatedStatus(matchId, 'B', picks);
+
+  // Grading classes (current match result; skip if team shouldn't be here)
   let classA = '', classB = '';
   if (match.actualWinner) {
-    if (pick.winner === 'A') classA = match.actualWinner === 'A' ? 'correct' : 'incorrect';
-    if (pick.winner === 'B') classB = match.actualWinner === 'B' ? 'correct' : 'incorrect';
+    if (!elimA.eliminated && pick.winner === 'A') classA = match.actualWinner === 'A' ? 'correct' : 'incorrect';
+    if (!elimB.eliminated && pick.winner === 'B') classB = match.actualWinner === 'B' ? 'correct' : 'incorrect';
   }
 
   // Can user click to pick?
@@ -1186,18 +1215,32 @@ function buildMatchCard(matchId, match, picks) {
     </div>`;
   }
 
+  // Build team row HTML accounting for elimination status
+  function teamRow(team, cls, sel, clickAttr, pickDot, elim) {
+    if (elim.eliminated) {
+      const hint = elim.correctTeam
+        ? `<div style="font-size:10px;color:var(--red);font-weight:700;margin-top:1px;line-height:1.2;">${elim.correctTeam.flag || ''} ${esc(elim.correctTeam.name)}</div>`
+        : '';
+      return `<div class="match-team ${sel} ${clickAttr ? 'clickable' : ''}" ${clickAttr}>
+        <div style="flex:1;min-width:0;">
+          <div class="team-name" style="text-decoration:line-through;color:var(--muted);">${esc(team.name)}</div>
+          ${hint}
+        </div>
+        ${pickDot ? '<div class="pick-dot"></div>' : ''}
+        ${team.flag ? `<span class="team-flag">${team.flag}</span>` : ''}
+      </div>`;
+    }
+    return `<div class="match-team ${cls} ${sel} ${clickAttr ? 'clickable' : ''}" ${clickAttr}>
+      <span class="team-name ${team.tbd ? 'tbd' : ''}">${esc(team.name)}</span>
+      ${pickDot ? '<div class="pick-dot"></div>' : ''}
+      ${team.flag ? `<span class="team-flag">${team.flag}</span>` : ''}
+    </div>`;
+  }
+
   return `<div class="match-card${match.actualWinner ? ' has-result' : ''}">
-    <div class="match-team ${classA} ${selA} ${clickable ? 'clickable' : ''}" ${teamClickA}>
-      <span class="team-name ${tA.tbd ? 'tbd' : ''}">${esc(tA.name)}</span>
-      ${pick.winner === 'A' ? '<div class="pick-dot"></div>' : ''}
-      ${tA.flag ? `<span class="team-flag">${tA.flag}</span>` : ''}
-    </div>
+    ${teamRow(tA, classA, selA, teamClickA, pick.winner === 'A', elimA)}
     ${divider}
-    <div class="match-team ${classB} ${selB} ${clickable ? 'clickable' : ''}" ${teamClickB}>
-      <span class="team-name ${tB.tbd ? 'tbd' : ''}">${esc(tB.name)}</span>
-      ${pick.winner === 'B' ? '<div class="pick-dot"></div>' : ''}
-      ${tB.flag ? `<span class="team-flag">${tB.flag}</span>` : ''}
-    </div>
+    ${teamRow(tB, classB, selB, teamClickB, pick.winner === 'B', elimB)}
     ${scoreInput}
     ${championBanner}
   </div>`;
