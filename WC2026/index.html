@@ -524,6 +524,41 @@ nav {
 }
 .checkbox-row input[type=checkbox] { accent-color: var(--blue); width: 14px; height: 14px; }
 
+/* ── INSTRUCTIONS BANNER ── */
+.instructions-banner {
+  background: #0d1f3c;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--muted2);
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.instructions-banner .instructions-text { flex: 1; }
+.props-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: var(--yellow);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  animation: nudge-right 1.2s ease-in-out infinite;
+}
+.props-arrow svg { display: block; }
+@keyframes nudge-right {
+  0%, 100% { transform: translateX(0); }
+  50%       { transform: translateX(5px); }
+}
+
 /* ── THIRD PLACE SECTION ── */
 #third-place-wrap {
   margin-top: 28px;
@@ -591,6 +626,20 @@ nav {
     <!-- BRACKET VIEW -->
     <div id="bracket-view" style="display:flex;flex:1;overflow:hidden">
       <div id="bracket-area">
+        <div class="instructions-banner">
+          <div class="instructions-text">
+            <strong style="color:var(--text)">How to play:</strong>
+            Click on a team to advance it to the next round. To undo a selection, click that same team's name in the previous round.
+            Points are awarded for correct match winner picks, with more points for later rounds.
+            Don't forget to fill out the <strong style="color:var(--text)">Props section</strong> and <strong style="color:var(--text)">3rd place match winner</strong> (bottom) — points are awarded there too!
+          </div>
+          <div class="props-arrow">
+            <span>Props</span>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 14h18M17 8l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
         <div id="bracket-container"></div>
         <div id="third-place-wrap" class="hidden">
           <div class="third-label">3rd Place Match</div>
