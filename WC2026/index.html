@@ -1079,18 +1079,24 @@ function buildMatchCard(matchId, match, picks) {
     <div class="match-divider-line"></div>
   </div>`;
 
-  // Score prediction input (shown only when user has picked a winner & can edit)
+  // Score prediction input — Final only
   let scoreInput = '';
-  if (canEdit() && pick.winner && bothReady) {
-    scoreInput = `<input class="match-score-input" type="text"
-      value="${esc(pick.score || '')}"
-      placeholder="Score? (e.g. 2-1) +1pt"
-      oninput="updateScorePick('${matchId}', this.value)" />`;
-  } else if (!canEdit() && pick.score) {
-    const scoreCorrect = match.actualScore && pick.score.trim() === match.actualScore.trim();
-    scoreInput = `<div class="match-score-input" style="font-size:12px;color:${scoreCorrect ? 'var(--green)' : 'var(--muted)'}">
-      Your score: ${esc(pick.score)}${scoreCorrect ? ' ✓' : ''}
-    </div>`;
+  if (matchId === 'final') {
+    if (canEdit() && pick.winner && bothReady) {
+      scoreInput = `<div style="border-top:1px solid var(--border2);background:#0f2040;padding:8px 10px;">
+        <div style="font-size:10px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">🏆 Predict the final score! +1 bonus pt</div>
+        <input class="match-score-input" type="text"
+          value="${esc(pick.score || '')}"
+          placeholder="e.g. 2-1"
+          style="border-top:none;background:transparent;padding:0;color:var(--text);font-size:13px;"
+          oninput="updateScorePick('${matchId}', this.value)" />
+      </div>`;
+    } else if (!canEdit() && pick.score) {
+      const scoreCorrect = match.actualScore && pick.score.trim() === match.actualScore.trim();
+      scoreInput = `<div class="match-score-input" style="font-size:12px;color:${scoreCorrect ? 'var(--green)' : 'var(--muted)'}">
+        Your score: ${esc(pick.score)}${scoreCorrect ? ' ✓' : ''}
+      </div>`;
+    }
   }
 
   return `<div class="match-card${match.actualWinner ? ' has-result' : ''}">
