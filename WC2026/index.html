@@ -788,8 +788,19 @@ function teamInfo(slot) {
 // Walk backwards through picks to resolve the team a user has predicted for a given slot.
 // Falls back to TBD if no pick exists or the bracket team is already known.
 function resolvedTeam(matchId, slot, picks) {
+  // 3rd place teams are the losers of the two SFs — not in FEEDERS, so handle specially.
+  if (matchId === 'third') {
+    const match = getMatch('third');
+    const ti = teamInfo(match ? (slot === 'A' ? match.teamA : match.teamB) : null);
+    if (!ti.tbd) return ti; // admin has confirmed the team
+    const sfId = slot === 'A' ? 'sf_1' : 'sf_2';
+    const sfPick = picks[sfId];
+    if (!sfPick?.winner) return { name: 'TBD', flag: '', tbd: true };
+    return resolvedTeam(sfId, sfPick.winner === 'A' ? 'B' : 'A', picks);
+  }
+
   const match = getMatch(matchId);
-  if (!match) return { name: 'TBD', flag: '❓', tbd: true };
+  if (!match) return { name: 'TBD', flag: '', tbd: true };
   const ti = teamInfo(slot === 'A' ? match.teamA : match.teamB);
   if (!ti.tbd) return ti;
   const feederMatchId = (FEEDERS[matchId] || {})[slot];
@@ -1038,12 +1049,28 @@ function renderBracket() {
   container.innerHTML = labelHtml + gridHtml;
 
   // Third place — separate div below, unaffected by the grid
-  const thirdMatch = getMatch('third');
+  const thirdMatch = getMatch('third') || { id: 'third', teamA: null, teamB: null, actualWinner: null, actualScore: null };
   const thirdWrap  = document.getElementById('third-place-wrap');
   const thirdCont  = document.getElementById('third-place-container');
-  const thirdReady = thirdMatch && thirdMatch.teamA && thirdMatch.teamB;
-  thirdWrap.classList.toggle('hidden', !thirdReady);
-  if (thirdReady) thirdCont.innerHTML = buildMatchCard('third', thirdMatch, picks);
+  const thirdA = resolvedTeam('third', 'A', picks);
+  const thirdB = resolvedTeam('third', 'B', picks);
+  const showThird = !thirdA.tbd || !thirdB.tbd;
+  thirdWrap.classList.toggle('hidden', !showThird);
+  if (showThird) {
+    const thirdPick = picks['third'] || {};
+    let thirdWinnerHtml = '';
+    if (thirdPick.winner) {
+      const w = thirdPick.winner === 'A' ? thirdA : thirdB;
+      thirdWinnerHtml = `<div style="display:flex;align-items:center;gap:10px;margin-left:20px;">
+        ${w.flag ? `<span style="font-size:28px;line-height:1;">${w.flag}</span>` : ''}
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">3rd Place</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">${esc(w.name)}</div>
+        </div>
+      </div>`;
+    }
+    thirdCont.innerHTML = `<div style="display:flex;align-items:center;">${buildMatchCard('third', thirdMatch, picks)}${thirdWinnerHtml}</div>`;
+  }
 
   renderProps();
   updateBanners();
@@ -1099,6 +1126,17 @@ function buildMatchCard(matchId, match, picks) {
     }
   }
 
+  // Champion banner — Final only, shown whenever a winner is picked
+  let championBanner = '';
+  if (matchId === 'final' && pick.winner) {
+    const champ = pick.winner === 'A' ? tA : tB;
+    championBanner = `<div style="text-align:center;padding:14px 10px 12px;border-top:1px solid var(--border2);background:#0a1e38;">
+      <div style="font-size:10px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">🏆 Your Champion</div>
+      ${champ.flag ? `<div style="font-size:36px;line-height:1;margin-bottom:6px;">${champ.flag}</div>` : ''}
+      <div style="font-size:20px;font-weight:800;color:var(--text);">${esc(champ.name)}</div>
+    </div>`;
+  }
+
   return `<div class="match-card${match.actualWinner ? ' has-result' : ''}">
     <div class="match-team ${classA} ${selA} ${clickable ? 'clickable' : ''}" ${teamClickA}>
       <span class="team-name ${tA.tbd ? 'tbd' : ''}">${esc(tA.name)}</span>
@@ -1112,6 +1150,7 @@ function buildMatchCard(matchId, match, picks) {
       ${tB.flag ? `<span class="team-flag">${tB.flag}</span>` : ''}
     </div>
     ${scoreInput}
+    ${championBanner}
   </div>`;
 }
 
