@@ -761,6 +761,21 @@ for (const [id, meta] of Object.entries(MATCH_META)) {
   }
 }
 
+// Walks the feeder chain following actual results (not picks) to find who
+// SHOULD be in a given slot. Returns TBD if any upstream match is unplayed.
+function resolvedActualTeam(matchId, slot) {
+  if (matchId === 'third') return { name: 'TBD', flag: '', tbd: true };
+  const match = getMatch(matchId);
+  if (!match) return { name: 'TBD', flag: '', tbd: true };
+  const ti = teamInfo(slot === 'A' ? match.teamA : match.teamB);
+  if (!ti.tbd) return ti;
+  const feederMatchId = (FEEDERS[matchId] || {})[slot];
+  if (!feederMatchId) return ti;
+  const feederMatch = getMatch(feederMatchId);
+  if (!feederMatch?.actualWinner) return { name: 'TBD', flag: '', tbd: true };
+  return resolvedActualTeam(feederMatchId, feederMatch.actualWinner);
+}
+
 // Returns {eliminated, correctTeam} for a team slot: eliminated=true means the
 // user's pick chain brought in a team that has already lost a played match.
 function getEliminatedStatus(matchId, slot, picks) {
@@ -781,7 +796,11 @@ function getEliminatedStatus(matchId, slot, picks) {
 
   // No wrong pick in direct feeder — check further back
   const deeper = getEliminatedStatus(feederMatchId, feederPick.winner, picks);
-  if (deeper.eliminated) return { eliminated: true, correctTeam: null };
+  if (deeper.eliminated) {
+    // Resolve who actually won through to this slot via admin-entered results
+    const actual = resolvedActualTeam(matchId, slot);
+    return { eliminated: true, correctTeam: actual.tbd ? null : actual };
+  }
 
   return { eliminated: false };
 }
