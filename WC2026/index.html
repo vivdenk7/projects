@@ -1340,16 +1340,23 @@ function renderLeaderboard() {
     </p>`;
   }
 
-  html += '<table class="lb-table"><thead><tr><th>#</th><th>Name</th><th>Submitted</th><th style="text-align:right">Pts</th></tr></thead><tbody>';
+  html += '<table class="lb-table"><thead><tr><th>#</th><th>Name</th><th>Submitted</th><th style="text-align:center">Winner</th><th style="text-align:right">Pts</th></tr></thead><tbody>';
 
   scored.forEach((s, i) => {
     const isMe = s.userName === state.currentUser;
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
     const updatedDate = s.updatedAt?.toDate ? s.updatedAt.toDate().toLocaleDateString() : '—';
+    const finalPick = (s.picks || {})['final'];
+    let winnerFlag = '<span style="color:var(--muted)">—</span>';
+    if (finalPick?.winner) {
+      const champ = resolvedTeam('final', finalPick.winner, s.picks || {});
+      if (!champ.tbd && champ.flag) winnerFlag = `<span style="font-size:20px;line-height:1;">${champ.flag}</span>`;
+    }
     html += `<tr onclick="viewOther('${esc(s.userName)}')">
       <td class="lb-rank">${medal || (i + 1)}</td>
       <td class="lb-name">${esc(s.userName)}${isMe ? '<span class="you">(you)</span>' : ''}</td>
       <td class="lb-submitted">${updatedDate}</td>
+      <td style="text-align:center;">${winnerFlag}</td>
       <td class="lb-pts">${s._pts}</td>
     </tr>`;
   });
