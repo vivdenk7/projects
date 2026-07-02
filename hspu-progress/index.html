@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HSPU Progression Tracker</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1>HSPU Progression Tracker</h1>
+  <p>Balance and pressing-strength tracks converge into the wall HSPU sequence, then the freestanding handstand push-up.</p>
+</header>
+
+<div class="progress-summary" id="progress-summary"></div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--status-not-started);"></span>Not started</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--status-in-progress);"></span>In progress</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--status-mastered);"></span>Mastered</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--track-m); opacity:0.75;"></span>Optional / dashed = optional path</div>
+</div>
+
+<div class="main">
+  <div class="chart-wrap">
+    <svg id="timeline"></svg>
+  </div>
+  <div class="detail-panel empty" id="detail-panel"></div>
+</div>
+
+<div class="bg-panel">
+  <h2>Background / Ongoing Work</h2>
+  <div class="bg-cards" id="bg-cards"></div>
+</div>
+
+<div class="footer-actions">
+  <button id="export-btn">Export progress (JSON)</button>
+  <button id="import-btn">Import progress (JSON)</button>
+  <input type="file" id="import-file" accept="application/json" style="display:none;" />
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
