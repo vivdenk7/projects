@@ -1530,8 +1530,10 @@ function renderAdmin() {
     html += `<div class="round-group-label">${grp.label}</div>`;
     for (const matchId of grp.ids) {
       const match = getM(matchId);
-      const nameA = match.teamA?.name || 'Team A';
-      const nameB = match.teamB?.name || 'Team B';
+      const rtA = resolvedActualTeam(matchId, 'A');
+      const rtB = resolvedActualTeam(matchId, 'B');
+      const nameA = rtA.tbd ? 'Team A' : `${rtA.flag ? rtA.flag + ' ' : ''}${rtA.name}`;
+      const nameB = rtB.tbd ? 'Team B' : `${rtB.flag ? rtB.flag + ' ' : ''}${rtB.name}`;
       html += `<div class="match-editor-card">
         <h4>${MATCH_META[matchId]?.label}: ${esc(nameA)} vs ${esc(nameB)}</h4>
         <div class="form-row">
