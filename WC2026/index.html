@@ -788,9 +788,8 @@ function getEliminatedStatus(matchId, slot, picks) {
   if (!feederPick?.winner) return { eliminated: false };
 
   if (feederMatch?.actualWinner && feederPick.winner !== feederMatch.actualWinner) {
-    // User picked the loser in the feeder — the team showing here is out
-    const correctData = feederMatch.actualWinner === 'A' ? feederMatch.teamA : feederMatch.teamB;
-    const ct = teamInfo(correctData);
+    // User picked the loser in the feeder — resolve the actual winner by tracing upstream results
+    const ct = resolvedActualTeam(feederMatchId, feederMatch.actualWinner);
     return { eliminated: true, correctTeam: ct.tbd ? null : ct };
   }
 
