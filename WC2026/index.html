@@ -764,7 +764,14 @@ for (const [id, meta] of Object.entries(MATCH_META)) {
 // Walks the feeder chain following actual results (not picks) to find who
 // SHOULD be in a given slot. Returns TBD if any upstream match is unplayed.
 function resolvedActualTeam(matchId, slot) {
-  if (matchId === 'third') return { name: 'TBD', flag: '', tbd: true };
+  if (matchId === 'third') {
+    const sfId = slot === 'A' ? 'sf_1' : 'sf_2';
+    const sfMatch = getMatch(sfId);
+    if (!sfMatch?.actualWinner) return { name: 'TBD', flag: '', tbd: true };
+    // Loser of the SF is the opposite slot from the actual winner
+    const loserSlot = sfMatch.actualWinner === 'A' ? 'B' : 'A';
+    return resolvedActualTeam(sfId, loserSlot);
+  }
   const match = getMatch(matchId);
   if (!match) return { name: 'TBD', flag: '', tbd: true };
   const ti = teamInfo(slot === 'A' ? match.teamA : match.teamB);
