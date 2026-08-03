@@ -220,14 +220,27 @@ function reducer(state, action) {
       return { ...state, notes: action.notes };
     case 'SET_DAY_NOTE': {
       const dn = { ...state.dayNotes };
+      // Remove old entries for this noteId (and oldNoteId if migrating from old format)
+      const idsToRemove = new Set([action.noteId]);
+      if (action.oldNoteId) idsToRemove.add(action.oldNoteId);
+      Object.keys(dn).forEach(d => {
+        const filtered = (dn[d] || []).filter(n => !idsToRemove.has(n.id));
+        if (filtered.length === 0) delete dn[d];
+        else dn[d] = filtered;
+      });
+      const noteObj = { id: action.noteId, color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate };
       dateRange(action.startDate, action.endDate).forEach(d => {
-        dn[d] = { color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate };
+        dn[d] = [...(dn[d] || []), noteObj];
       });
       return { ...state, dayNotes: dn };
     }
     case 'CLEAR_DAY_NOTE': {
       const dn = { ...state.dayNotes };
-      dateRange(action.startDate, action.endDate).forEach(d => { delete dn[d]; });
+      Object.keys(dn).forEach(d => {
+        const filtered = (dn[d] || []).filter(n => n.id !== action.noteId);
+        if (filtered.length === 0) delete dn[d];
+        else dn[d] = filtered;
+      });
       return { ...state, dayNotes: dn };
     }
     default:
@@ -723,10 +736,12 @@ const DAY_NOTE_BG = {
   sky:    'bg-sky-100',
 };
 
-function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, onNoteClick, dayNote, today, isOwner }) {
+function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, onNoteClick, dayNotes, today, isOwner }) {
   const dayNum = parseInt(dateStr.split('-')[2]);
   const isToday = dateStr === today;
-  const noteBg = dayNote ? (DAY_NOTE_BG[dayNote.color] || 'bg-rose-100') : '';
+  const hasNotes = dayNotes && dayNotes.length > 0;
+  const firstNote = hasNotes ? dayNotes[0] : null;
+  const noteBg = firstNote ? (DAY_NOTE_BG[firstNote.color] || 'bg-rose-100') : '';
 
   return (
     <div
@@ -745,22 +760,22 @@ function DateCell({ dateStr, isCurrentMonth, events, onEventClick, onCellClick, 
         `}>
           {dayNum}
         </div>
-        {dayNote && isCurrentMonth && (
+        {hasNotes && isCurrentMonth && (
           isOwner ? (
             <button
               onClick={e => { e.stopPropagation(); onNoteClick(dateStr); }}
-              title={dayNote.note || 'Holiday/Note'}
+              title={dayNotes.map(n => n.note || 'Note').join(', ')}
               className="text-xs leading-none opacity-60 hover:opacity-100 transition-opacity px-0.5">
               📌
             </button>
           ) : (
-            <span title={dayNote.note || 'Holiday/Note'} className="text-xs leading-none opacity-50 px-0.5">📌</span>
+            <span title={dayNotes.map(n => n.note || 'Note').join(', ')} className="text-xs leading-none opacity-50 px-0.5">📌</span>
           )
         )}
       </div>
-      {dayNote && dayNote.note && isCurrentMonth && (
-        <div className="text-[10px] text-slate-500 italic truncate mb-0.5 leading-tight">{dayNote.note}</div>
-      )}
+      {hasNotes && isCurrentMonth && dayNotes.map(n => n.note ? (
+        <div key={n.id} className="text-[10px] text-slate-500 italic truncate mb-0.5 leading-tight">{n.note}</div>
+      ) : null)}
       <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
         {events.map(ev => (
           <EventChip key={ev.id + '-' + dateStr} event={ev} dateStr={dateStr} onClick={onEventClick} />
@@ -777,7 +792,7 @@ const DAY_NOTE_COLORS = [
   { id: 'sky',    label: 'Info',    bg: 'bg-sky-400' },
 ];
 
-function HolidayNoteModal({ dateStr, existing, onSave, onClear, onClose }) {
+function HolidayNoteModal({ dateStr, noteId, existing, onSave, onClear, onClose }) {
   const [color, setColor] = useState(existing?.color || 'rose');
   const [note, setNote] = useState(existing?.note || '');
   const [startDate, setStartDate] = useState(existing?.startDate || dateStr);
@@ -831,12 +846,12 @@ function HolidayNoteModal({ dateStr, existing, onSave, onClear, onClose }) {
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 transition-all" />
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={() => onSave(color, note, startDate, endDate)}
+            <button onClick={() => onSave(noteId, color, note, startDate, endDate)}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-sm font-bold transition-colors">
               Save
             </button>
             {existing && (
-              <button onClick={onClear}
+              <button onClick={() => onClear(noteId)}
                 className="flex-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl py-2.5 text-sm font-semibold transition-colors border border-red-200">
                 Clear
               </button>
@@ -880,6 +895,51 @@ function CellActionMenu({ dateStr, hasNote, onAddEvent, onSetNote, onClose }) {
   );
 }
 
+const DAY_NOTE_DOT = {
+  rose:   'bg-rose-400',
+  amber:  'bg-amber-400',
+  violet: 'bg-violet-400',
+  sky:    'bg-sky-400',
+};
+
+function DayNotesPanel({ dateStr, notes, onEdit, onAdd, onClose }) {
+  const ref = useRef();
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+      <div ref={ref} className="modal-enter bg-white rounded-2xl shadow-xl border border-slate-100 w-64 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{displayDateFull(dateStr)}</p>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none w-6 h-6 flex items-center justify-center">×</button>
+        </div>
+        <div className="p-2 flex flex-col gap-1">
+          {notes.map(n => (
+            <button key={n.id} onClick={() => onEdit(n)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors">
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DAY_NOTE_DOT[n.color] || 'bg-rose-400'}`}></span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-slate-700 font-medium truncate">{n.note || DAY_NOTE_COLORS.find(c => c.id === n.color)?.label || 'Note'}</div>
+                {n.startDate !== n.endDate && (
+                  <div className="text-[10px] text-slate-400">{displayDate(n.startDate)} – {displayDate(n.endDate)}</div>
+                )}
+              </div>
+              <span className="text-xs text-slate-400 flex-shrink-0">Edit</span>
+            </button>
+          ))}
+          <button onClick={onAdd}
+            className="w-full text-left px-3 py-2.5 text-sm text-blue-600 hover:bg-blue-50 rounded-xl transition-colors font-medium">
+            ➕ Add Note
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CalendarWidget() {
   const { state, dispatch } = useContext(DataCtx);
   const { isOwner } = useContext(AuthCtx);
@@ -888,7 +948,8 @@ function CalendarWidget() {
   const [editEvent, setEditEvent] = useState(null);
   const [addDate, setAddDate] = useState(null);
   const [cellMenu, setCellMenu] = useState(null);
-  const [noteDate, setNoteDate] = useState(null);
+  const [notePanel, setNotePanel] = useState(null);  // dateStr — shows DayNotesPanel
+  const [noteModal, setNoteModal] = useState(null);  // { noteId, existing, dateStr }
   const today = toDateStr(new Date());
 
   const grid = useMemo(() => getMonthGrid(YEAR, month), [month]);
@@ -921,17 +982,21 @@ function CalendarWidget() {
     setViewEvent(null);
   };
 
-  const handleNoteSave = (color, note, startDate, endDate) => {
-    dispatch({ type: 'SET_DAY_NOTE', startDate, endDate, color, note });
-    setNoteDate(null);
+  const handleNoteSave = (noteId, color, note, startDate, endDate) => {
+    const newId = noteId || uuid();
+    const isRangeId = noteId && /^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$/.test(noteId);
+    dispatch({
+      type: 'SET_DAY_NOTE',
+      noteId: isRangeId ? uuid() : newId,
+      oldNoteId: isRangeId ? noteId : undefined,
+      color, note, startDate, endDate,
+    });
+    setNoteModal(null);
   };
 
-  const handleNoteClear = () => {
-    const existing = state.dayNotes[noteDate];
-    const startDate = existing?.startDate || noteDate;
-    const endDate = existing?.endDate || noteDate;
-    dispatch({ type: 'CLEAR_DAY_NOTE', startDate, endDate });
-    setNoteDate(null);
+  const handleNoteClear = (noteId) => {
+    dispatch({ type: 'CLEAR_DAY_NOTE', noteId });
+    setNoteModal(null);
   };
 
   return (
@@ -971,8 +1036,8 @@ function CalendarWidget() {
             events={getEventsForDate(dateStr)}
             onEventClick={setViewEvent}
             onCellClick={handleCellClick}
-            onNoteClick={dateStr => { setNoteDate(dateStr); }}
-            dayNote={state.dayNotes[dateStr] || null}
+            onNoteClick={dateStr => { setNotePanel(dateStr); }}
+            dayNotes={state.dayNotes[dateStr] || []}
             today={today}
             isOwner={isOwner}
           />
@@ -1002,19 +1067,29 @@ function CalendarWidget() {
       {cellMenu && (
         <CellActionMenu
           dateStr={cellMenu}
-          hasNote={!!state.dayNotes[cellMenu]}
+          hasNote={!!(state.dayNotes[cellMenu] && state.dayNotes[cellMenu].length > 0)}
           onAddEvent={() => { setAddDate(cellMenu); setCellMenu(null); }}
-          onSetNote={() => { setNoteDate(cellMenu); setCellMenu(null); }}
+          onSetNote={() => { setNoteModal({ noteId: null, existing: null, dateStr: cellMenu }); setCellMenu(null); }}
           onClose={() => setCellMenu(null)}
         />
       )}
-      {noteDate && (
+      {notePanel && (
+        <DayNotesPanel
+          dateStr={notePanel}
+          notes={state.dayNotes[notePanel] || []}
+          onEdit={note => { setNotePanel(null); setNoteModal({ noteId: note.id, existing: note, dateStr: notePanel }); }}
+          onAdd={() => { setNotePanel(null); setNoteModal({ noteId: null, existing: null, dateStr: notePanel }); }}
+          onClose={() => setNotePanel(null)}
+        />
+      )}
+      {noteModal && (
         <HolidayNoteModal
-          dateStr={noteDate}
-          existing={state.dayNotes[noteDate] || null}
+          dateStr={noteModal.dateStr}
+          noteId={noteModal.noteId}
+          existing={noteModal.existing}
           onSave={handleNoteSave}
           onClear={handleNoteClear}
-          onClose={() => setNoteDate(null)}
+          onClose={() => setNoteModal(null)}
         />
       )}
       {viewEvent && !editEvent && (
@@ -1369,7 +1444,26 @@ function App() {
       }, () => check()),
       onSnapshot(collection(db, 'dayNotes'), snap => {
         const dayNotes = {};
-        snap.docs.forEach(d => { dayNotes[d.id] = d.data(); });
+        const seenRangeIds = new Set();
+        snap.docs.forEach(d => {
+          const data = d.data();
+          const docId = d.id;
+          const isOldFormat = /^\d{4}-\d{2}-\d{2}$/.test(docId);
+          let noteId;
+          if (isOldFormat) {
+            // Old format: one doc per date; deduplicate by startDate_endDate
+            noteId = `${data.startDate}_${data.endDate}`;
+            if (seenRangeIds.has(noteId)) return;
+            seenRangeIds.add(noteId);
+          } else {
+            noteId = docId;
+          }
+          const noteObj = { id: noteId, color: data.color, note: data.note, startDate: data.startDate, endDate: data.endDate };
+          dateRange(data.startDate, data.endDate).forEach(dt => {
+            if (!dayNotes[dt]) dayNotes[dt] = [];
+            dayNotes[dt].push(noteObj);
+          });
+        });
         localDispatch({ type: 'SET_DAY_NOTES', dayNotes });
         check();
       }, () => check()),
@@ -1435,18 +1529,30 @@ function App() {
         case 'UPDATE_NOTES':
           await setDoc(doc(db, 'settings', 'notes'), { notes: action.notes });
           break;
-        case 'SET_DAY_NOTE':
-          await Promise.all(
-            dateRange(action.startDate, action.endDate).map(d =>
-              setDoc(doc(db, 'dayNotes', d), { color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate })
-            )
-          );
+        case 'SET_DAY_NOTE': {
+          if (action.oldNoteId) {
+            const parts = action.oldNoteId.match(/^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+            if (parts) {
+              await Promise.all(dateRange(parts[1], parts[2]).map(d => deleteDoc(doc(db, 'dayNotes', d))));
+            }
+          }
+          await setDoc(doc(db, 'dayNotes', action.noteId), {
+            color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate,
+          });
           break;
-        case 'CLEAR_DAY_NOTE':
-          await Promise.all(
-            dateRange(action.startDate, action.endDate).map(d => deleteDoc(doc(db, 'dayNotes', d)))
-          );
+        }
+        case 'CLEAR_DAY_NOTE': {
+          const isRangeId = /^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$/.test(action.noteId);
+          if (isRangeId) {
+            const parts = action.noteId.match(/^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+            if (parts) {
+              await Promise.all(dateRange(parts[1], parts[2]).map(d => deleteDoc(doc(db, 'dayNotes', d))));
+            }
+          } else {
+            await deleteDoc(doc(db, 'dayNotes', action.noteId));
+          }
           break;
+        }
         default:
           break;
       }
