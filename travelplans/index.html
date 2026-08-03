@@ -228,9 +228,9 @@ function reducer(state, action) {
         if (filtered.length === 0) delete dn[d];
         else dn[d] = filtered;
       });
-      const noteObj = { id: action.noteId, color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate };
+      const noteObj = { id: action.noteId, color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate, priority: action.priority ?? 0 };
       dateRange(action.startDate, action.endDate).forEach(d => {
-        dn[d] = [...(dn[d] || []), noteObj];
+        dn[d] = [...(dn[d] || []), noteObj].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
       });
       return { ...state, dayNotes: dn };
     }
@@ -902,7 +902,7 @@ const DAY_NOTE_DOT = {
   sky:    'bg-sky-400',
 };
 
-function DayNotesPanel({ dateStr, notes, onEdit, onAdd, onClose }) {
+function DayNotesPanel({ dateStr, notes, onEdit, onAdd, onPrioritize, onClose }) {
   const ref = useRef();
   useEffect(() => {
     const h = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -911,30 +911,43 @@ function DayNotesPanel({ dateStr, notes, onEdit, onAdd, onClose }) {
   }, []);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-      <div ref={ref} className="modal-enter bg-white rounded-2xl shadow-xl border border-slate-100 w-64 overflow-hidden">
+      <div ref={ref} className="modal-enter bg-white rounded-2xl shadow-xl border border-slate-100 w-72 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{displayDateFull(dateStr)}</p>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none w-6 h-6 flex items-center justify-center">×</button>
         </div>
         <div className="p-2 flex flex-col gap-1">
-          {notes.map(n => (
-            <button key={n.id} onClick={() => onEdit(n)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors">
-              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DAY_NOTE_DOT[n.color] || 'bg-rose-400'}`}></span>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm text-slate-700 font-medium truncate">{n.note || DAY_NOTE_COLORS.find(c => c.id === n.color)?.label || 'Note'}</div>
-                {n.startDate !== n.endDate && (
-                  <div className="text-[10px] text-slate-400">{displayDate(n.startDate)} – {displayDate(n.endDate)}</div>
-                )}
-              </div>
-              <span className="text-xs text-slate-400 flex-shrink-0">Edit</span>
-            </button>
+          {notes.map((n, i) => (
+            <div key={n.id} className="flex items-center gap-1">
+              <button onClick={() => onEdit(n)}
+                className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition-colors min-w-0">
+                {i === 0 && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex-shrink-0">★</span>}
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${DAY_NOTE_DOT[n.color] || 'bg-rose-400'}`}></span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-slate-700 font-medium truncate">{n.note || DAY_NOTE_COLORS.find(c => c.id === n.color)?.label || 'Note'}</div>
+                  {n.startDate !== n.endDate && (
+                    <div className="text-[10px] text-slate-400">{displayDate(n.startDate)} – {displayDate(n.endDate)}</div>
+                  )}
+                </div>
+                <span className="text-xs text-slate-400 flex-shrink-0">Edit</span>
+              </button>
+              {i > 0 && (
+                <button onClick={() => onPrioritize(n, notes)}
+                  title="Make primary (sets background color & shows first)"
+                  className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-blue-100 hover:text-blue-600 text-slate-500 text-sm transition-colors">
+                  ↑
+                </button>
+              )}
+            </div>
           ))}
           <button onClick={onAdd}
             className="w-full text-left px-3 py-2.5 text-sm text-blue-600 hover:bg-blue-50 rounded-xl transition-colors font-medium">
             ➕ Add Note
           </button>
         </div>
+        {notes.length > 1 && (
+          <div className="px-4 pb-3 text-[10px] text-slate-400">★ = primary color for this day · ↑ to promote</div>
+        )}
       </div>
     </div>
   );
@@ -997,6 +1010,20 @@ function CalendarWidget() {
   const handleNoteClear = (noteId) => {
     dispatch({ type: 'CLEAR_DAY_NOTE', noteId });
     setNoteModal(null);
+  };
+
+  const handlePrioritize = (note, notesOnDay) => {
+    const maxPriority = Math.max(...notesOnDay.map(n => n.priority ?? 0));
+    const newPriority = maxPriority + 1;
+    dispatch({
+      type: 'SET_DAY_NOTE',
+      noteId: note.id,
+      color: note.color,
+      note: note.note,
+      startDate: note.startDate,
+      endDate: note.endDate,
+      priority: newPriority,
+    });
   };
 
   return (
@@ -1079,6 +1106,7 @@ function CalendarWidget() {
           notes={state.dayNotes[notePanel] || []}
           onEdit={note => { setNotePanel(null); setNoteModal({ noteId: note.id, existing: note, dateStr: notePanel }); }}
           onAdd={() => { setNotePanel(null); setNoteModal({ noteId: null, existing: null, dateStr: notePanel }); }}
+          onPrioritize={(note, notes) => handlePrioritize(note, notes)}
           onClose={() => setNotePanel(null)}
         />
       )}
@@ -1458,11 +1486,15 @@ function App() {
           } else {
             noteId = docId;
           }
-          const noteObj = { id: noteId, color: data.color, note: data.note, startDate: data.startDate, endDate: data.endDate };
+          const noteObj = { id: noteId, color: data.color, note: data.note, startDate: data.startDate, endDate: data.endDate, priority: data.priority ?? 0 };
           dateRange(data.startDate, data.endDate).forEach(dt => {
             if (!dayNotes[dt]) dayNotes[dt] = [];
             dayNotes[dt].push(noteObj);
           });
+        });
+        // Sort each day's notes by priority descending
+        Object.keys(dayNotes).forEach(d => {
+          dayNotes[d].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
         });
         localDispatch({ type: 'SET_DAY_NOTES', dayNotes });
         check();
@@ -1537,7 +1569,7 @@ function App() {
             }
           }
           await setDoc(doc(db, 'dayNotes', action.noteId), {
-            color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate,
+            color: action.color, note: action.note, startDate: action.startDate, endDate: action.endDate, priority: action.priority ?? 0,
           });
           break;
         }
