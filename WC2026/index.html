@@ -894,8 +894,10 @@ function resolvedTeam(matchId, slot, picks) {
     if (!ti.tbd) return ti; // admin has confirmed the team
     const sfId = slot === 'A' ? 'sf_1' : 'sf_2';
     const sfPick = picks[sfId];
-    if (!sfPick?.winner) return { name: 'TBD', flag: '', tbd: true };
-    return resolvedTeam(sfId, sfPick.winner === 'A' ? 'B' : 'A', picks);
+    const sfActual = getMatch(sfId)?.actualWinner;
+    const sfWinner = sfPick?.winner || sfActual;
+    if (!sfWinner) return { name: 'TBD', flag: '', tbd: true };
+    return resolvedTeam(sfId, sfWinner === 'A' ? 'B' : 'A', picks);
   }
 
   const match = getMatch(matchId);
@@ -905,8 +907,10 @@ function resolvedTeam(matchId, slot, picks) {
   const feederMatchId = (FEEDERS[matchId] || {})[slot];
   if (!feederMatchId) return ti;
   const feederPick = picks[feederMatchId];
-  if (!feederPick?.winner) return ti;
-  return resolvedTeam(feederMatchId, feederPick.winner, picks);
+  // Fall back to actual result when no pick exists (e.g. new visitor viewing results)
+  const effectiveWinner = feederPick?.winner || getMatch(feederMatchId)?.actualWinner;
+  if (!effectiveWinner) return ti;
+  return resolvedTeam(feederMatchId, effectiveWinner, picks);
 }
 
 function computeScore(submission) {
@@ -1185,11 +1189,17 @@ function buildMatchCard(matchId, match, picks) {
   const elimA = getEliminatedStatus(matchId, 'A', picks);
   const elimB = getEliminatedStatus(matchId, 'B', picks);
 
-  // Grading classes (current match result; skip if team shouldn't be here)
+  // Grading classes — always show actual winner green; mark wrong picks incorrect
   let classA = '', classB = '';
   if (match.actualWinner) {
-    if (!elimA.eliminated && pick.winner === 'A') classA = match.actualWinner === 'A' ? 'correct' : 'incorrect';
-    if (!elimB.eliminated && pick.winner === 'B') classB = match.actualWinner === 'B' ? 'correct' : 'incorrect';
+    if (!elimA.eliminated) {
+      if (match.actualWinner === 'A') classA = 'correct';
+      else if (pick.winner === 'A') classA = 'incorrect';
+    }
+    if (!elimB.eliminated) {
+      if (match.actualWinner === 'B') classB = 'correct';
+      else if (pick.winner === 'B') classB = 'incorrect';
+    }
   }
 
   // Can user click to pick?
