@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segments</title>
+<meta name="description" content="Interactive prototype of Segments: save a range inside a song as its own library item.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#0b0b0b; --bg:#121212; --elev:#1f1f1f; --elev2:#2a2a2a; --elev3:#3a3a3a;
+  --text:#ffffff; --sub:#b3b3b3; --dim:#7a7a7a; --green:#1ed760; --green-d:#169c46;
+  --danger:#f15e6c;
+  --font:'Figtree',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--page);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg{display:block}
+
+/* ---------- stage ---------- */
+.stage{min-height:100vh;display:flex;align-items:center;justify-content:center;gap:48px;padding:20px 16px}
+.phone-wrap{flex:none;position:relative}
+.phone{position:absolute;top:0;left:0;width:414px;height:868px;transform-origin:top left;border-radius:58px;padding:12px;background:#050505;box-shadow:0 0 0 2px #2c2c2e,0 0 0 9px #111,0 40px 90px rgba(0,0,0,.7)}
+.screen{position:relative;width:390px;height:844px;border-radius:46px;overflow:hidden;background:var(--bg);user-select:none;-webkit-user-select:none}
+
+/* ---------- guide ---------- */
+.guide{width:340px;flex:none;align-self:center}
+.g-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:700}
+.g-title{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:6px 0 8px}
+.g-lede{color:var(--sub);font-size:15px;line-height:1.5;margin-bottom:22px}
+.steps{list-style:none;display:flex;flex-direction:column;gap:6px;counter-reset:s}
+.step{position:relative;display:flex;gap:12px;padding:12px 14px;border-radius:12px;border:1px solid transparent;color:var(--dim);transition:background .25s,border-color .25s,color .25s}
+.step .n{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--elev2);color:var(--sub)}
+.step .t{font-size:14px;line-height:1.45}
+.step b{color:inherit;font-weight:700}
+.step.done{color:var(--sub)}
+.step.done .n{background:var(--green);color:#000}
+.step.active{background:#1a1a1a;border-color:#2e2e2e;color:var(--text)}
+.step.active .n{background:var(--text);color:#000}
+.step.flash{border-color:var(--green);background:rgba(30,215,96,.1);animation:flash 1.1s ease-in-out 3}
+@keyframes flash{50%{box-shadow:0 0 0 6px rgba(30,215,96,.18)}}
+.g-foot{display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap}
+.seg-toggle{display:flex;background:var(--elev);border-radius:999px;padding:3px}
+.seg-toggle button{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--sub)}
+.seg-toggle button.on{background:var(--text);color:#000}
+.g-btn{padding:8px 14px;border-radius:999px;border:1px solid var(--elev3);font-size:13px;font-weight:600;color:var(--sub)}
+.g-btn:hover{color:var(--text);border-color:var(--sub)}
+.g-note{color:var(--dim);font-size:12px;margin-top:16px;line-height:1.5}
+.g-label{font-size:12px;color:var(--dim)}
+.g-more{display:none}
+
+/* ---------- common in-phone ---------- */
+.status{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 44px;z-index:60;font-weight:700;font-size:16px;pointer-events:none}
+.status .r{display:flex;align-items:center;gap:6px;font-size:14px}
+.batt{background:#fff;color:#000;border-radius:5px;padding:0 4px;font-size:12px;font-weight:800;line-height:17px}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-bottom:170px;scrollbar-width:none}
+.view::-webkit-scrollbar{display:none}
+.icon{width:24px;height:24px}
+.cover{flex:none;border-radius:4px;position:relative;overflow:hidden}
+.badge{position:absolute;right:3px;bottom:3px;width:18px;height:18px;border-radius:5px;background:rgba(0,0,0,.72);color:var(--green);display:grid;place-items:center}
+.badge svg{width:13px;height:13px}
+.row{display:flex;align-items:center;gap:12px;padding:7px 16px;cursor:pointer}
+.row:active{background:rgba(255,255,255,.04)}
+.row .meta{flex:1;min-width:0}
+.row .ttl{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .ttl.playing{color:var(--green)}
+.row .sub{display:flex;align-items:center;gap:5px;font-size:14px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden}
+.row .sub span{overflow:hidden;text-overflow:ellipsis}
+.row .more{color:var(--sub);padding:8px 0 8px 8px}
+.dl{width:15px;height:15px;flex:none;color:var(--green)}
+.exp{flex:none;width:15px;height:15px;border-radius:2px;background:#9a9a9a;color:#121212;font-size:10px;font-weight:800;display:grid;place-items:center}
+.segmark{width:15px;height:15px;flex:none;color:var(--green)}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--dim);flex:none;display:grid;place-items:center}
+.chk.on{background:var(--green);border-color:var(--green);color:#000}
+
+/* tabs + mini */
+.tabs{position:absolute;left:0;right:0;bottom:0;height:92px;display:flex;justify-content:space-around;padding-top:14px;background:linear-gradient(to top,#000 55%,rgba(0,0,0,.85) 80%,rgba(0,0,0,0));z-index:20}
+.tab{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--sub);width:80px}
+.tab.on{color:var(--text)}
+.tab svg{width:26px;height:26px}
+.mini{position:absolute;left:8px;right:8px;bottom:94px;height:58px;border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 10px 0 8px;z-index:25;cursor:pointer;overflow:hidden}
+.mini .meta{flex:1;min-width:0}
+.mini .l1{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .l1 span{color:rgba(255,255,255,.72);font-weight:500}
+.mini .l2{font-size:12px;color:var(--green);display:flex;align-items:center;gap:4px;margin-top:2px}
+.mini .ctl{display:flex;align-items:center;gap:14px}
+.mini .pbar{position:absolute;left:8px;right:8px;bottom:0;height:2px;background:rgba(255,255,255,.25);border-radius:2px}
+.mini .pbar i{position:absolute;left:0;top:0;bottom:0;background:#fff;border-radius:2px}
+.mini .recdot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+
+/* library */
+.lib-head{position:sticky;top:0;z-index:5;background:var(--bg);padding:58px 16px 10px}
+.lib-top{display:flex;align-items:center;gap:12px}
+.avatar{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 60% 40%,#3f7a45,#0f2412)}
+.lib-top h1{flex:1;font-size:24px;font-weight:800}
+.chips{display:flex;gap:8px;margin-top:16px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:32px;padding:0 14px;border-radius:999px;background:var(--elev2);font-size:14px;display:flex;align-items:center;gap:6px}
+.chip.on{background:var(--green);color:#000}
+.chip.x{width:32px;padding:0;justify-content:center}
+.chip .new{font-size:9px;font-weight:800;letter-spacing:.06em;background:var(--green);color:#000;border-radius:4px;padding:1px 4px}
+.sortrow{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 8px;font-size:14px}
+.sortrow .l{display:flex;align-items:center;gap:8px}
+.sortrow .sel{color:var(--green);font-weight:700;font-size:14px}
+.selbar{position:absolute;left:8px;right:8px;bottom:160px;z-index:26;display:flex;gap:8px;align-items:center;background:#262626;border-radius:12px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.selbar .c{flex:1;font-size:14px;color:var(--sub);padding-left:6px}
+.pill{height:36px;padding:0 16px;border-radius:999px;font-weight:700;font-size:14px}
+.pill.g{background:var(--green);color:#000}
+.pill.g:disabled{opacity:.4}
+.pill.o{border:1px solid var(--elev3)}
+
+/* liked + playlist pages */
+.back{position:absolute;top:58px;left:10px;z-index:6;width:36px;height:36px;display:grid;place-items:center}
+.liked-head{padding:110px 16px 10px;background:linear-gradient(180deg,#3a3ad8 0%,#2a2a9a 40%,var(--bg) 100%)}
+.find{display:flex;gap:8px;position:absolute;top:92px;left:16px;right:16px}
+.find div{flex:1;height:36px;border-radius:6px;background:rgba(255,255,255,.14);display:flex;align-items:center;gap:8px;padding:0 10px;font-weight:700;font-size:14px}
+.find span{height:36px;border-radius:6px;background:rgba(255,255,255,.14);padding:0 14px;display:flex;align-items:center;font-weight:700;font-size:14px;text-decoration:underline}
+.liked-head h2,.pl-head h2{font-size:30px;font-weight:800;margin-top:40px;letter-spacing:-.01em}
+.liked-head .cnt{color:var(--sub);font-size:14px;margin-top:4px}
+.actrow{display:flex;align-items:center;gap:20px;padding:14px 16px 6px}
+.actrow .sp{flex:1}
+.bigplay{width:56px;height:56px;border-radius:50%;background:var(--green);color:#000;display:grid;place-items:center}
+.bigplay svg{width:26px;height:26px}
+.dlc{width:30px;height:30px;border-radius:50%;background:var(--green);color:#000;display:grid;place-items:center}
+.genres{display:flex;gap:8px;padding:6px 16px 10px;overflow:hidden}
+.genres span{flex:none;height:32px;padding:0 14px;border-radius:999px;background:var(--elev);font-size:14px;display:flex;align-items:center}
+.addrow .cover{background:var(--elev);display:grid;place-items:center;color:var(--sub)}
+.pl-head{padding:60px 16px 0;text-align:left}
+.pl-art{width:220px;height:220px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;box-shadow:0 12px 40px rgba(0,0,0,.6);border-radius:4px;overflow:hidden}
+.pl-art > div{width:100%;height:100%}
+.owner{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:700;font-size:14px}
+.owner i{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 60% 40%,#3f7a45,#0f2412)}
+.pl-dur{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:13px;margin-top:8px}
+.pl-kind{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--green);font-weight:700;margin-top:10px;background:rgba(30,215,96,.12);padding:3px 8px;border-radius:999px}
+
+/* now playing */
+.np{position:absolute;inset:0;z-index:40;background:#000;transform:translateY(0);transition:transform .32s cubic-bezier(.3,.7,.2,1);overflow:hidden}
+.np.closed{transform:translateY(100%)}
+.np-art{position:absolute;inset:0}
+.np-art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 18%,rgba(0,0,0,0) 45%,rgba(0,0,0,.82) 68%,#000 100%)}
+.np-top{position:absolute;top:56px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:2}
+.np-top .ctx{text-align:center;font-weight:700;font-size:15px}
+.np-top .ctx small{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.7);font-weight:600}
+.np-top button{width:40px;height:40px;display:grid;place-items:center}
+.np-body{position:absolute;left:0;right:0;bottom:0;padding:0 22px 34px;z-index:2}
+.np-title{display:flex;align-items:center;gap:12px}
+.np-title .meta{flex:1;min-width:0}
+.np-title h3{font-size:24px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.np-title .art2{font-size:16px;color:rgba(255,255,255,.72);margin-top:2px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.checkc{width:30px;height:30px;flex:none}
+.segchip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:12px;font-weight:700;color:var(--green);background:rgba(30,215,96,.13);border-radius:999px;padding:3px 9px}
+.segchip svg{width:13px;height:13px}
+.reclabel{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--green);margin:14px 0 -6px;letter-spacing:.02em}
+.bar{position:relative;height:22px;margin-top:14px;cursor:pointer;touch-action:none}
+.bar .track{position:absolute;left:0;right:0;top:9px;height:4px;border-radius:2px;background:rgba(255,255,255,.28)}
+.bar .fill{position:absolute;left:0;top:9px;height:4px;border-radius:2px;background:#fff}
+.bar .rec{position:absolute;top:6px;height:10px;border-radius:3px;background:rgba(30,215,96,.55);border-left:2px solid var(--green)}
+.bar .knob{position:absolute;top:4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#fff}
+.bar.locked{cursor:not-allowed}
+.times{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.7);margin-top:2px;font-variant-numeric:tabular-nums}
+.controls{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.controls .sm{width:40px;height:40px;display:grid;place-items:center;position:relative}
+.controls .sm svg{width:26px;height:26px}
+.controls .sk svg{width:32px;height:32px}
+.controls .on{color:var(--green)}
+.controls .on::after{content:"";position:absolute;bottom:-2px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--green)}
+.playbtn{width:68px;height:68px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center}
+.playbtn svg{width:30px;height:30px}
+.np-foot{display:flex;align-items:center;gap:18px;margin-top:22px}
+.np-foot .dev{flex:1;display:flex;align-items:center;gap:8px;color:var(--green);font-size:14px}
+.np-foot button{color:#fff}
+
+/* prompts */
+.prompt{margin-bottom:16px;background:rgba(24,24,24,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px;animation:up .28s cubic-bezier(.3,.7,.2,1)}
+@keyframes up{from{transform:translateY(12px);opacity:0}}
+.prompt.start{display:flex;align-items:center;gap:10px}
+.pglyph{width:34px;height:34px;border-radius:9px;background:rgba(30,215,96,.15);color:var(--green);display:grid;place-items:center;flex:none}
+.pglyph svg{width:20px;height:20px}
+.pglyph.live{animation:pulse 1.2s infinite}
+.ptext{flex:1;min-width:0}
+.ptext b{display:block;font-size:15px}
+.ptext small{display:block;font-size:12px;color:var(--sub);margin-top:1px}
+.px{width:30px;height:30px;display:grid;place-items:center;color:var(--sub)}
+.px svg{width:18px;height:18px}
+.prompt.end .ph{display:flex;align-items:center;gap:10px}
+.prompt.end .range{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;margin-top:1px}
+.prompt.end .range b{color:var(--green);display:inline;font-size:12px}
+.pbtns{display:flex;gap:8px;margin-top:12px}
+.pbtns .pill{flex:1}
+.plink{display:block;width:100%;text-align:center;font-size:13px;color:var(--sub);margin-top:8px;padding:4px;text-decoration:underline}
+.pwarn{font-size:12px;color:var(--sub);margin-top:8px;text-align:center}
+
+/* sheets */
+.scrim{position:absolute;inset:0;z-index:70;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;background:#282828;border-radius:14px 14px 0 0;padding:10px 0 34px;animation:sup .28s cubic-bezier(.3,.7,.2,1);max-height:90%;overflow-y:auto}
+@keyframes sup{from{transform:translateY(100%)}}
+.grab{width:40px;height:4px;border-radius:2px;background:#5a5a5a;margin:0 auto 12px}
+.sh-head{display:flex;align-items:center;gap:12px;padding:4px 16px 14px;border-bottom:1px solid #3a3a3a}
+.sh-head .t{font-size:16px}
+.sh-head .s{font-size:13px;color:var(--sub);margin-top:2px}
+.mi{display:flex;align-items:center;gap:16px;width:100%;text-align:left;padding:13px 18px;font-size:16px}
+.mi svg{width:24px;height:24px;color:var(--sub)}
+.mi.danger,.mi.danger svg{color:var(--danger)}
+.sh-title{font-size:18px;font-weight:800;padding:2px 18px 4px}
+.sh-sub{font-size:13px;color:var(--sub);padding:0 18px 12px;line-height:1.45}
+.namefield{padding:6px 18px 0}
+.namefield label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;letter-spacing:.02em}
+.namefield label svg{width:14px;height:14px}
+.namefield input{width:100%;height:48px;border-radius:8px;border:2px solid var(--green);background:rgba(30,215,96,.1);color:#fff;font:inherit;font-size:17px;font-weight:600;padding:0 12px;outline:none;box-shadow:0 0 0 4px rgba(30,215,96,.15)}
+.namefield input::selection{background:rgba(30,215,96,.45)}
+.namefield .meta{font-size:12px;color:var(--sub);margin-top:8px;font-variant-numeric:tabular-nums}
+.sh-btns{display:flex;gap:10px;padding:18px 18px 0}
+.sh-btns .pill{flex:1;height:44px;font-size:15px}
+
+/* toast */
+.toast{position:absolute;left:12px;right:12px;bottom:160px;z-index:90;background:#fff;color:#000;border-radius:8px;padding:12px 14px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:up .25s}
+.toast span{flex:1}
+.toast button{font-weight:800;color:#000;text-decoration:underline}
+.np-open .toast{bottom:40px}
+
+/* ---------- responsive ---------- */
+@media (max-width:820px){
+  .stage{flex-direction:column;justify-content:flex-start;gap:18px;padding:16px}
+  .guide{width:100%;max-width:440px}
+  .g-title{font-size:28px;margin:2px 0 4px}
+  .g-lede{margin-bottom:12px;font-size:14px}
+  .guide:not(.expanded) .step:not(.active){display:none}
+  .g-more{display:inline-block}
+}
+</style>
+</head>
+<body>
+<main class="stage">
+  <aside class="guide" id="guide"></aside>
+  <div class="phone-wrap" id="phoneWrap"><div class="phone" id="phone"><div class="screen" id="app"></div></div></div>
+</main>
+
+<script>
+/* ================= data ================= */
+const TRACKS = {
+  tmo:     {title:'Take Me Out', artist:'Franz Ferdinand', dur:237, art:'linear-gradient(155deg,#141414 0 52%,#e2a031 52% 60%,#141414 60% 100%)', tint:'#8a5a0c'},
+  blue:    {title:'Blue Hour', artist:'Nico Stojan, JAW', dur:459, art:'radial-gradient(circle at 32% 35%,#f2c94c 0 16%,transparent 17%),radial-gradient(circle at 66% 58%,#8fbf5f 0 15%,transparent 16%),radial-gradient(circle at 40% 72%,#e98b3a 0 11%,transparent 12%),#ece6d8', tint:'#6b6a3a'},
+  fin:     {title:'The Finishing', artist:'Stavroz', dur:483, art:'radial-gradient(circle,#1c1c1c 0 17%,#e5533d 18% 40%,#3cb8b0 41% 49%,#f1e4c8 50%)', tint:'#8a3a2a'},
+  air:     {title:'Air', artist:'NINZE & OKAXY', dur:436, art:'linear-gradient(200deg,#7a7a7a,#262626 60%,#111)', tint:'#3d3d3d'},
+  swing:   {title:'Swing Lynn', artist:'Harmless', dur:321, art:'radial-gradient(ellipse 22% 14% at 50% 50%,#d63b3b 0 60%,transparent 62%),#f6f4ee', tint:'#7a2e2e'},
+  roi:     {title:'Roi - Instrumental Slowed', artist:'Mckyyy', dur:93, art:'linear-gradient(170deg,#0d1530,#3c4f8f 55%,#101626)', tint:'#27335e'},
+  untrust: {title:'Untrust Us', artist:'Crystal Castles', dur:186, art:'linear-gradient(140deg,#2e2424,#8a5d5d 50%,#1e1a1a)', tint:'#6b4040'},
+  blouson: {title:'Blouson Noir', artist:'AaRON', dur:277, art:'linear-gradient(135deg,#0a0a0a 0 50%,#e6e6e6 50%)', tint:'#444'},
+  veridis: {title:'Veridis Quo', artist:'Daft Punk', dur:345, art:'linear-gradient(160deg,#2b0f3a,#b8323f 55%,#f0b04a)', tint:'#6e2238'},
+  onmtn:   {title:'On A Mountain', artist:'Gunna', dur:176, explicit:true, art:'linear-gradient(165deg,#5fb3b8,#1d5a66 55%,#0c2a33)', tint:'#1d5a66'},
+  spazz:   {title:'Spazz', artist:'Lil Baby', dur:109, explicit:true, art:'linear-gradient(160deg,#d9d6d0,#6e6a64 55%,#2a2826)', tint:'#7a1414'},
+  star67:  {title:'Star67', artist:'Drake', explicit:true, art:'linear-gradient(150deg,#4a4a4a,#0d0d0d 70%)', tint:'#3a3a3a'},
+  futura:  {title:'Futura Free', artist:'Frank Ocean', art:'linear-gradient(160deg,#a9d1c1,#3f6f64)', tint:'#2f5a50'},
+  myhead:  {title:'My Head & The Glass', artist:'Bastille', art:'linear-gradient(160deg,#f08a3c,#3a1d10)', tint:'#7a4418'},
+};
+const LIKED = ['blue','fin','air','swing','roi','untrust','blouson','veridis'];
+const SEED_SEGS = [
+  {id:'s1', name:'Take Me Out intro',       track:'tmo',    start:0,   end:50},
+  {id:'s2', name:'Star67 H1',               track:'star67', start:0,   end:101},
+  {id:'s3', name:'Futura Free H2',          track:'futura', start:324, end:559},
+  {id:'s4', name:'My Head & The Glass P1',  track:'myhead', start:5,   end:138},
+];
+const STATIC_PL = [
+  {id:'alt',    name:'Alt House',               owner:'Brose',          art:'conic-gradient(#7a2f8f 0 25%,#c2185b 0 50%,#1ed760 0 75%,#b5523b 0)'},
+  {id:'frog',   name:'big frog splash',         owner:'CrowdChantsViv', art:'linear-gradient(170deg,#6c8fb0,#6d7a4f 55%,#3b4a2c)'},
+  {id:'bread',  name:'Breadman',                owner:'CrowdChantsViv', art:'radial-gradient(circle at 50% 45%,#f3efe6 0 22%,#111 24%)', dl:true},
+  {id:'blend1', name:'Brose + CrowdChantsViv',  owner:'Spotify',        art:'radial-gradient(circle at 62% 38%,#2346c9 0 20%,transparent 21%),radial-gradient(circle at 40% 58%,#4fe3c3 0 20%,transparent 21%),#0e1a2e'},
+  {id:'blend2', name:'certified bigslump hoss', owner:'Spotify',        art:'radial-gradient(circle at 62% 38%,#0d6b4a 0 20%,transparent 21%),radial-gradient(circle at 40% 58%,#f7b6c2 0 20%,transparent 21%),#0b2a22'},
+  {id:'cuh',    name:'cuh',                     owner:'CrowdChantsViv', art:'radial-gradient(ellipse at 50% 55%,#e8b86a 0 8%,#3b4fa8 20%,#0b0f2a 60%)'},
+];
+
+/* ================= icons ================= */
+const sw = 'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"';
+const I = {
+  play:'<svg viewBox="0 0 24 24"><path d="M7 4.2v15.6L20 12z" fill="currentColor"/></svg>',
+  pause:'<svg viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor"/><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor"/></svg>',
+  prev:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="2.8" height="16" rx=".6" fill="currentColor"/><path d="M20 4v16L8 12z" fill="currentColor"/></svg>',
+  next:'<svg viewBox="0 0 24 24"><rect x="17.2" y="4" width="2.8" height="16" rx=".6" fill="currentColor"/><path d="M4 4v16l12-8z" fill="currentColor"/></svg>',
+  shuffle:`<svg viewBox="0 0 24 24"><path ${sw} d="M3 7h3.2c2 0 3.2.9 4.3 2.6l2.9 4.8c1.1 1.7 2.3 2.6 4.3 2.6H21M3 17h3.2c1.4 0 2.4-.4 3.2-1.2M14.3 8.3c.9-.9 1.9-1.3 3.4-1.3H21M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>`,
+  repeat:`<svg viewBox="0 0 24 24"><path ${sw} d="M4 12V9.5A3.5 3.5 0 0 1 7.5 6H19M16 3l3 3-3 3M20 12v2.5a3.5 3.5 0 0 1-3.5 3.5H5M8 21l-3-3 3-3"/></svg>`,
+  repeat1:`<svg viewBox="0 0 24 24"><path ${sw} d="M4 12V9.5A3.5 3.5 0 0 1 7.5 6H19M16 3l3 3-3 3M20 12v2.5a3.5 3.5 0 0 1-3.5 3.5H5M8 21l-3-3 3-3"/><text x="12" y="14.6" font-size="7.5" font-weight="800" text-anchor="middle" fill="currentColor" font-family="Figtree,sans-serif">1</text></svg>`,
+  chevDown:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M5 9l7 7 7-7"/></svg>`,
+  chevLeft:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M15 5l-7 7 7 7"/></svg>`,
+  dots:'<svg viewBox="0 0 24 24" class="icon"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg>',
+  share:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg>`,
+  checkc:'<svg viewBox="0 0 24 24" class="checkc"><circle cx="12" cy="12" r="11" fill="#1ed760"/><path d="M7 12.3l3.2 3.2L17 8.7" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  device:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M4 5h3M4 5v13h3M13 4h7v16h-7z"/><circle cx="16.5" cy="14" r="2" ${sw}/><circle cx="16.5" cy="8" r=".6" fill="currentColor"/></svg>`,
+  queue:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M5 5h14a2 2 0 0 1 0 4H5a2 2 0 0 1 0-4zM4 14h16M4 19h16"/></svg>`,
+  home:`<svg viewBox="0 0 24 24"><path ${sw} d="M4 10.5L12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg>`,
+  search:`<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" ${sw}/><path ${sw} d="M16 16l4.5 4.5"/></svg>`,
+  lib:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="2.4" height="16" rx=".4" fill="currentColor"/><rect x="9" y="4" width="2.4" height="16" rx=".4" fill="currentColor"/><path d="M14 5.2l2.4-.8 4.6 14.6-2.4.8z" fill="currentColor"/></svg>',
+  plus:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M12 4v16M4 12h16"/></svg>`,
+  heart:'<svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="#fff"/></svg>',
+  dl:'<svg viewBox="0 0 24 24" class="dl"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M12 6.5v9M8 12l4 4 4-4" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  dlOutline:`<svg viewBox="0 0 24 24" class="icon" style="width:30px;height:30px"><circle cx="12" cy="12" r="9.5" ${sw}/><path ${sw} d="M12 7.5v8M8.5 12.5L12 16l3.5-3.5"/></svg>`,
+  grid:`<svg viewBox="0 0 24 24" class="icon"><rect x="4" y="4" width="6.5" height="6.5" rx="1" ${sw}/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1" ${sw}/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1" ${sw}/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1" ${sw}/></svg>`,
+  sort:`<svg viewBox="0 0 24 24" style="width:20px;height:20px"><path ${sw} d="M7 4v16M3.5 16.5L7 20l3.5-3.5M17 20V4M13.5 7.5L17 4l3.5 3.5"/></svg>`,
+  close:`<svg viewBox="0 0 24 24" class="icon"><path ${sw} d="M6 6l12 12M18 6L6 18"/></svg>`,
+  seg:`<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M8 4H5v16h3M16 4h3v16h-3"/><path d="M10 8.6v6.8l5.4-3.4z" fill="currentColor"/></svg>`,
+  plusCircle:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" ${sw}/><path ${sw} d="M12 7.5v9M7.5 12h9"/></svg>`,
+  minusCircle:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" ${sw}/><path ${sw} d="M7.5 12h9"/></svg>`,
+  pencil:`<svg viewBox="0 0 24 24"><path ${sw} d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24"><path ${sw} d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>`,
+  addQ:`<svg viewBox="0 0 24 24"><path ${sw} d="M4 4v6M1 7h6M10 7h10M4 13h16M4 18h16"/></svg>`,
+  goQ:`<svg viewBox="0 0 24 24"><path ${sw} d="M6 4h12a2 2 0 0 1 0 4H6a2 2 0 0 1 0-4zM4 13h16M4 18h16"/></svg>`,
+  globe:`<svg viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="12" cy="12" r="9" ${sw}/><path ${sw} d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg>`,
+  bt:`<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path ${sw} d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>`,
+  shuffleSm:`<svg viewBox="0 0 24 24" class="icon" style="width:30px;height:30px"><path ${sw} d="M3 7h3.2c2 0 3.2.9 4.3 2.6l2.9 4.8c1.1 1.7 2.3 2.6 4.3 2.6H21M3 17h3.2c1.4 0 2.4-.4 3.2-1.2M14.3 8.3c.9-.9 1.9-1.3 3.4-1.3H21M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>`,
+  signal:'<svg viewBox="0 0 20 14" width="19" height="13"><rect x="0" y="9" width="3.4" height="5" rx="1" fill="#fff"/><rect x="5.2" y="6" width="3.4" height="8" rx="1" fill="#fff"/><rect x="10.4" y="3" width="3.4" height="11" rx="1" fill="#fff"/><rect x="15.6" y="0" width="3.4" height="14" rx="1" fill="#fff"/></svg>',
+  check:`<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+};
+
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = s => { s = Math.max(0, Math.floor(s + 1e-6)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); };
+const fmtLong = s => { s = Math.round(s); const m = Math.floor(s/60), r = s%60; return m ? `${m} min ${r} sec` : `${r} sec`; };
+const defaultName = (tid, a, b) => `${TRACKS[tid].title} · ${fmt(a)}–${fmt(b)}`;
+
+let speed = 1;
+let S;
+function initial(){
+  return {
+    segments: SEED_SEGS.map(s => ({...s})),
+    playlists: [
+      {id:'pl-seg', name:'Segments', owner:'CrowdChantsViv', auto:true},
+      {id:'pl-165', name:'One Six Five', owner:'CrowdChantsViv', summary:'26 songs · 2 Segments · 1hr 17 min', art:'linear-gradient(160deg,#e8733f,#b8452a 50%,#4a1a10)', tint:'#c2502c',
+        items:[{kind:'track',id:'onmtn'},{kind:'segment',id:'s2'},{kind:'track',id:'spazz'}]},
+    ],
+    cur:{kind:'track', id:'tmo'}, pos:0, playing:false,
+    queue:[{kind:'track',id:'tmo'}, ...LIKED.map(id => ({kind:'track',id}))], qi:0, baseQueue:null, ctx:'Liked Songs',
+    shuffle:false, repeat:0,
+    rec:{state:'idle', start:0, auto50:false},
+    prompt:null, forcedWhy:null, everPlayed:false,
+    np:true, screen:{name:'library'}, stack:[],
+    filter:null, sub:null, select:false, selected:[],
+    sheet:null, toast:null,
+    flags:{}, flash:false, expanded:false,
+  };
+}
+S = initial();
+
+const seg = id => S.segments.find(s => s.id === id);
+const pl = id => S.playlists.find(p => p.id === id);
+const flag = k => { if (!S.flags[k]) { S.flags[k] = true; renderGuide(); } };
+
+function info(item = S.cur){
+  if (item.kind === 'track'){
+    const t = TRACKS[item.id];
+    return {kind:'track', title:t.title, artist:t.artist, t, tid:item.id, start:0, end:t.dur};
+  }
+  const s = seg(item.id), t = TRACKS[s.track];
+  return {kind:'segment', title:s.name, artist:t.artist, t, tid:s.track, start:s.start, end:s.end, s};
+}
+
+function coverHTML(art, size, badge){
+  return `<div class="cover" style="width:${size}px;height:${size}px;background:${art}">${badge ? `<span class="badge">${I.seg}</span>` : ''}</div>`;
+}
+// The Segments playlist is automatic: always every saved Segment, like Liked Songs.
+const plItems = p => p.auto ? S.segments.map(s => ({kind:'segment', id:s.id})) : p.items;
+const sameItem = (a, b) => a.kind === b.kind && a.id === b.id;
+const itemArt = it => it.kind === 'track' ? TRACKS[it.id].art : TRACKS[seg(it.id)?.track]?.art;
+const expHTML = s => TRACKS[s.track].explicit ? '<span class="exp">E</span>' : '';
+const segSub = s => { const t = TRACKS[s.track]; return `${esc(t.artist)} · ${esc(t.title)} · [${fmt(s.end - s.start)}]`; };
+function mosaicArt(items){
+  const arts = items.slice(0,4).map(itemArt).filter(Boolean);
+  while (arts.length < 4) arts.push(arts[arts.length % Math.max(arts.length,1)] || '#333');
+  return arts;
+}
+function plCoverHTML(p, size){
+  return p.art ? coverHTML(p.art, size) : mosaicHTML(plItems(p), size);
+}
+function mosaicHTML(items, size){
+  const a = mosaicArt(items);
+  return `<div class="cover" style="width:${size}px;height:${size}px;display:grid;grid-template-columns:1fr 1fr">${a.map(x => `<div style="background:${x}"></div>`).join('')}</div>`;
+}
+
+/* ================= playback ================= */
+function shuffleRest(){
+  S.baseQueue = S.queue.slice();
+  const cur = S.queue[S.qi];
+  const rest = S.queue.filter((_, i) => i !== S.qi);
+  for (let i = rest.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+  S.queue = [cur, ...rest]; S.qi = 0;
+}
+function guardRecording(why){
+  if (S.rec.state !== 'recording') return false;
+  S.playing = false; S.prompt = 'forced'; S.forcedWhy = why; S.np = true;
+  return true;
+}
+function disarm(){ if (S.rec.state === 'armed') S.rec.state = 'idle'; }
+
+function playFrom(queue, qi, ctx){
+  if (guardRecording('nav')) return;
+  disarm();
+  S.queue = queue; S.qi = qi; S.cur = queue[qi]; S.ctx = ctx;
+  S.baseQueue = null;
+  if (S.shuffle) shuffleRest();
+  S.pos = info().start; S.playing = true; S.everPlayed = true; S.prompt = null;
+  if (S.cur.kind === 'segment') flag('segPlayed');
+}
+function play(){
+  if (S.prompt === 'forced') return;
+  const i = info();
+  if (S.pos >= i.end - 0.05) S.pos = i.start;
+  if (S.rec.state === 'armed'){
+    S.rec = {state:'recording', start:S.pos, auto50:false};
+    flag('recording');
+  }
+  S.prompt = null; S.playing = true; S.everPlayed = true; S.flash = false;
+  flag('played');
+}
+function pause(){
+  S.playing = false;
+  if (info().kind !== 'track') return;
+  if (S.rec.state === 'recording'){ S.prompt = 'end'; flag('endPrompt'); }
+  else if (S.everPlayed){ S.prompt = 'start'; flag('startPrompt'); }
+}
+function advance(dir){
+  if (guardRecording('next')) return;
+  disarm(); S.prompt = null;
+  let ni = S.qi + dir;
+  if (ni >= S.queue.length){
+    if (S.repeat === 1) ni = 0;
+    else { S.playing = false; S.pos = info().end; return; }
+  }
+  if (ni < 0) ni = 0;
+  S.qi = ni; S.cur = S.queue[ni]; S.pos = info().start; S.playing = true;
+  if (S.cur.kind === 'segment') flag('segPlayed');
+}
+function onEnd(){
+  if (S.repeat === 2){ S.pos = info().start; return; }
+  advance(1);
+}
+
+let last = performance.now();
+function tick(now){
+  const dt = Math.min(0.25, (now - last) / 1000); last = now;
+  if (S.playing){
+    S.pos += dt * speed;
+    const i = info();
+    if (i.kind === 'track' && S.rec.state === 'recording'){
+      if (i.tid === 'tmo' && !S.rec.auto50 && S.rec.start <= 45 && S.pos >= 50){
+        S.pos = 50; S.rec.auto50 = true; S.playing = false; S.prompt = 'end'; S.flash = true; S.np = true;
+        flag('endPrompt'); render(); requestAnimationFrame(tick); return;
+      }
+      if (S.pos >= i.end){
+        S.pos = i.end; S.playing = false; S.prompt = 'forced'; S.forcedWhy = 'end';
+        render(); requestAnimationFrame(tick); return;
+      }
+    }
+    if (S.pos >= i.end){ onEnd(); render(); }
+    else updateProgress();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ================= render ================= */
+function render(){
+  const app = $('#app');
+  const scroll = app.querySelector('.view')?.scrollTop || 0;
+  const sameScreen = render.lastKey === screenKey();
+  app.className = 'screen' + (S.np ? ' np-open' : '');
+  app.innerHTML = statusHTML() + `<div class="view">${screenHTML()}</div>` + selBarHTML() + miniHTML() + tabsHTML() + npHTML() + sheetHTML() + `<div id="toastSlot"></div>`;
+  if (sameScreen) app.querySelector('.view').scrollTop = scroll;
+  render.lastKey = screenKey();
+  bindBar();
+  renderToast();
+  renderGuide();
+  updateProgress();
+  const inp = app.querySelector('.sheet input');
+  if (inp && !render.focused){ render.focused = true; setTimeout(() => { inp.focus(); inp.select(); }, 60); }
+  if (!inp) render.focused = false;
+}
+const screenKey = () => JSON.stringify([S.screen, S.filter, S.sub]);
+
+function statusHTML(){
+  return `<div class="status"><span>2:08</span><span class="r">${I.signal}<span>5G+</span><span class="batt">98</span></span></div>`;
+}
+
+function screenHTML(){
+  const sc = S.screen.name;
+  if (sc === 'liked') return likedHTML();
+  if (sc === 'playlist') return playlistHTML(pl(S.screen.id));
+  return libraryHTML();
+}
+
+function libItems(){
+  const lists = [...S.playlists.map(p => ({type:'segpl', p, name:p.name, owner:p.owner})), ...STATIC_PL.map(p => ({type:'static', p, name:p.name, owner:p.owner}))];
+  const segs = S.segments.map(s => ({type:'seg', s, name:s.name}));
+  const f = S.filter, sub = S.sub;
+  let items;
+  if (f === 'segments') items = segs;
+  else if (f === 'playlists'){
+    items = lists;
+    if (sub === 'byyou') items = items.filter(x => x.owner === 'CrowdChantsViv');
+    if (sub === 'byspotify') items = items.filter(x => x.owner === 'Spotify');
+    if (sub === 'downloaded') items = items.filter(x => x.p.dl);
+  }
+  else if (f === 'downloaded') items = lists.filter(x => x.p.dl);
+  else items = lists;
+  items.sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity:'base'}));
+  const showLiked = f !== 'segments' && sub !== 'byspotify';
+  return {items, showLiked};
+}
+
+function libraryHTML(){
+  const f = S.filter;
+  let chips;
+  if (!f) chips = `<button class="chip" data-a="chip" data-id="playlists">Playlists</button>
+    <button class="chip" data-a="chip" data-id="segments">Segments <span class="new">NEW</span></button>
+    <button class="chip" data-a="nope">Albums</button><button class="chip" data-a="nope">Artists</button>
+    <button class="chip" data-a="chip" data-id="downloaded">Downloaded</button>`;
+  else if (f === 'playlists') chips = `<button class="chip x" data-a="chip-clear">${I.close}</button><button class="chip on" data-a="chip-clear">Playlists</button>
+    ${[['byyou','By you'],['byspotify','By Spotify'],['downloaded','Downloaded']].map(([k,l]) => `<button class="chip ${S.sub===k?'on':''}" data-a="sub" data-id="${k}">${l}</button>`).join('')}`;
+  else chips = `<button class="chip x" data-a="chip-clear">${I.close}</button><button class="chip on" data-a="chip-clear">${f === 'segments' ? 'Segments' : 'Downloaded'}</button>`;
+
+  const {items, showLiked} = libItems();
+  const curSeg = S.cur.kind === 'segment' ? S.cur.id : null;
+  let rows = '';
+  if (showLiked) rows += `<div class="row" data-a="open-liked"><div class="cover" style="width:64px;height:64px;background:linear-gradient(135deg,#4527d8,#8a8ae6 70%,#b6e3d0);display:grid;place-items:center">${I.heart}</div>
+    <div class="meta"><div class="ttl">Liked Songs</div><div class="sub">${I.dl}<span>Playlist · CrowdChantsViv</span></div></div></div>`;
+  for (const x of items){
+    if (x.type === 'seg'){
+      const s = x.s, t = TRACKS[s.track];
+      const lead = S.select ? `<span class="chk ${S.selected.includes(s.id)?'on':''}">${S.selected.includes(s.id)?I.check:''}</span>` : '';
+      rows += `<div class="row" data-a="${S.select ? 'sel-toggle' : 'lib-seg'}" data-id="${s.id}">${lead}${coverHTML(t.art, 64, true)}
+        <div class="meta"><div class="ttl ${curSeg===s.id?'playing':''}">${esc(s.name)}</div><div class="sub">${expHTML(s)}<span>${segSub(s)}</span></div></div>
+        ${S.select ? '' : `<button class="more" data-a="more-seg" data-id="${s.id}" data-ctx="lib">${I.dots}</button>`}</div>`;
+    } else if (x.type === 'segpl'){
+      rows += `<div class="row" data-a="open-pl" data-id="${x.p.id}">${plCoverHTML(x.p, 64)}
+        <div class="meta"><div class="ttl">${esc(x.p.name)}</div><div class="sub">${x.p.auto ? `<span class="segmark">${I.seg}</span>` : ''}<span>Playlist · ${esc(x.p.owner)}</span></div></div></div>`;
+    } else {
+      rows += `<div class="row" data-a="nope">${coverHTML(x.p.art, 64)}
+        <div class="meta"><div class="ttl">${esc(x.p.name)}</div><div class="sub">${x.p.dl ? I.dl : ''}<span>Playlist · ${esc(x.p.owner)}</span></div></div></div>`;
+    }
+  }
+  if (f === 'segments' && !items.length) rows += `<div style="padding:30px 16px;color:var(--sub);text-align:center;font-size:14px">No Segments yet. Pause a song to start one.</div>`;
+  const right = f === 'segments'
+    ? `<button class="sel" data-a="${S.select ? 'sel-cancel' : 'sel-mode'}">${S.select ? 'Done' : 'Select'}</button>`
+    : I.grid;
+  return `<div class="lib-head"><div class="lib-top"><div class="avatar"></div><h1>Your Library</h1>${I.search.replace('<svg','<svg class="icon"')}${I.plus}</div>
+    <div class="chips">${chips}</div></div>
+    <div class="sortrow"><span class="l">${I.sort} Alphabetical</span>${right}</div>${rows}`;
+}
+
+function selBarHTML(){
+  if (!S.select || S.screen.name !== 'library') return '';
+  const n = S.selected.length;
+  return `<div class="selbar"><span class="c">${n ? `${n} selected` : 'Tap Segments to select'}</span>
+    <button class="pill o" data-a="sel-cancel">Cancel</button>
+    <button class="pill g" data-a="sel-add" ${n ? '' : 'disabled'}>Add to playlist</button></div>`;
+}
+
+function likedHTML(){
+  const rows = LIKED.map((id, i) => {
+    const t = TRACKS[id], on = S.cur.kind === 'track' && S.cur.id === id;
+    return `<div class="row" data-a="play-liked" data-id="${i}">${coverHTML(t.art, 56)}
+      <div class="meta"><div class="ttl ${on?'playing':''}">${esc(t.title)}</div><div class="sub">${I.dl}<span>${esc(t.artist)}</span></div></div>
+      <button class="more" data-a="more-track" data-id="${id}">${I.dots}</button></div>`;
+  }).join('');
+  return `<button class="back" data-a="back">${I.chevLeft}</button>
+    <div class="liked-head" style="position:relative"><div class="find"><div>${I.search.replace('<svg','<svg style="width:18px;height:18px"')}Find in Liked Songs</div><span>Sort</span></div>
+    <h2>Liked Songs</h2><div class="cnt">${LIKED.length} songs</div></div>
+    <div class="actrow"><span class="dlc">${I.dl.replace('class="dl"','style="width:30px;height:30px;color:#1ed760"')}</span><span class="sp"></span>
+      <button data-a="shuffle-toggle" style="color:${S.shuffle?'var(--green)':'var(--sub)'}">${I.shuffleSm}</button>
+      <button class="bigplay" data-a="play-liked" data-id="0">${I.play}</button></div>
+    <div class="genres"><span>Chill</span><span>Electronic</span><span>House</span><span>Indie</span></div>
+    <div class="row addrow" data-a="nope"><div class="cover" style="width:56px;height:56px">${I.plus}</div><div class="meta"><div class="ttl">Add songs</div></div></div>
+    ${rows}`;
+}
+
+function playlistHTML(p){
+  if (!p) return libraryHTML();
+  const items = plItems(p);
+  const total = items.reduce((a, it) => { const i = info(it); return a + i.end - i.start; }, 0);
+  const nSegs = items.filter(it => it.kind === 'segment').length, nSongs = items.length - nSegs;
+  const count = [nSongs && `${nSongs} song${nSongs > 1 ? 's' : ''}`, nSegs && `${nSegs} Segment${nSegs > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
+  const rows = items.map((it, i) => {
+    const on = sameItem(S.cur, it);
+    if (it.kind === 'track'){
+      const t = TRACKS[it.id];
+      return `<div class="row" data-a="play-pl" data-id="${i}">${coverHTML(t.art, 56)}
+        <div class="meta"><div class="ttl ${on?'playing':''}">${esc(t.title)}</div><div class="sub">${I.dl}${t.explicit ? '<span class="exp">E</span>' : ''}<span>${esc(t.artist)}</span></div></div>
+        <button class="more" data-a="more-track" data-id="${it.id}" data-ctx="pl">${I.dots}</button></div>`;
+    }
+    const s = seg(it.id); if (!s) return '';
+    return `<div class="row" data-a="play-pl" data-id="${i}">${coverHTML(TRACKS[s.track].art, 56, true)}
+      <div class="meta"><div class="ttl ${on?'playing':''}">${esc(s.name)}</div><div class="sub"><span class="segmark">${I.seg}</span>${expHTML(s)}<span>${segSub(s)}</span></div></div>
+      <button class="more" data-a="more-seg" data-id="${it.id}" data-ctx="pl">${I.dots}</button></div>`;
+  }).join('');
+  const tint = p.tint || TRACKS[seg(items[0]?.id)?.track]?.tint || '#333';
+  const art = p.art ? `<div class="pl-art" style="display:block;background:${p.art}"></div>`
+    : `<div class="pl-art">${mosaicArt(items).map(x => `<div style="background:${x}"></div>`).join('')}</div>`;
+  return `<button class="back" data-a="back">${I.chevLeft}</button>
+    <div style="background:linear-gradient(180deg,${tint} 0%,var(--bg) 70%)">
+    <div class="pl-head">${art}
+    <h2>${esc(p.name)}</h2>
+    <div class="owner"><i></i>${esc(p.owner)}</div>
+    <div class="pl-dur">${I.globe} ${p.summary || `${count} · ${fmtLong(total)}`}</div>
+    ${p.auto ? `<span class="pl-kind">${I.seg.replace('<svg','<svg style="width:13px;height:13px"')} All your saved Segments</span>` : ''}</div></div>
+    <div class="actrow"><span style="color:var(--sub)">${I.dlOutline}</span><button data-a="share-pl" style="color:var(--sub)">${I.share}</button><span style="color:var(--sub)">${I.dots}</span><span class="sp"></span>
+      <button data-a="shuffle-toggle" style="color:${S.shuffle?'var(--green)':'var(--sub)'}">${I.shuffleSm}</button>
+      <button class="bigplay" data-a="play-pl" data-id="0">${I.play}</button></div>
+    ${rows || '<div style="padding:30px 16px;color:var(--sub);text-align:center;font-size:14px">Nothing here yet.</div>'}`;
+}
+
+function miniHTML(){
+  const i = info();
+  const rec = S.rec.state === 'recording';
+  return `<div class="mini" data-a="np-open" style="background:${i.t.tint}">
+    ${coverHTML(i.t.art, 42, i.kind === 'segment')}
+    <div class="meta"><div class="l1">${esc(i.title)} <span>• ${esc(i.artist)}</span></div>
+      <div class="l2">${rec ? `<span class="recdot"></span>Recording Segment` : `${I.bt} Tri Pods`}</div></div>
+    <div class="ctl"><span style="color:var(--green)">${I.device.replace('class="icon"','style="width:26px;height:26px"')}</span>
+      <button data-a="play-toggle">${(S.playing ? I.pause : I.play).replace('<svg','<svg style="width:26px;height:26px"')}</button></div>
+    <div class="pbar"><i id="mini-fill"></i></div></div>`;
+}
+
+function tabsHTML(){
+  const t = (a, icon, label, on) => `<button class="tab ${on?'on':''}" data-a="${a}">${icon}<span>${label}</span></button>`;
+  return `<nav class="tabs">${t('nope', I.home, 'Home')}${t('nope', I.search, 'Search')}${t('tab-lib', I.lib, 'Your Library', true)}${t('nope', I.plus.replace(' class="icon"',''), 'Create')}</nav>`;
+}
+
+function npHTML(){
+  const i = info(), isSeg = i.kind === 'segment';
+  const rec = S.rec.state === 'recording';
+  let prompt = '';
+  const nameOpen = S.sheet && S.sheet.type === 'name';
+  if (!nameOpen){
+    if (S.prompt === 'start' && S.rec.state === 'armed') prompt = `<div class="prompt start"><span class="pglyph live">${I.seg}</span>
+      <div class="ptext"><b>Segment ready</b><small>Press play. Recording starts from ${fmt(S.pos)}.</small></div>
+      <button class="px" data-a="dismiss-start" aria-label="Cancel">${I.close}</button></div>`;
+    else if (S.prompt === 'start') prompt = `<div class="prompt start"><span class="pglyph">${I.seg}</span>
+      <div class="ptext"><b>Start Segment?</b><small>Recording begins where you resume</small></div>
+      <button class="pill g" data-a="start-seg">Start</button>
+      <button class="px" data-a="dismiss-start" aria-label="Dismiss">${I.close}</button></div>`;
+    else if (S.prompt === 'end' || S.prompt === 'forced'){
+      const len = Math.floor(S.pos) - Math.floor(S.rec.start), short = len < 5, forced = S.prompt === 'forced';
+      const title = !forced ? 'End Segment?' : S.forcedWhy === 'end' ? 'Track ended. End Segment?' : 'Finish your Segment first';
+      prompt = `<div class="prompt end"><div class="ph"><span class="pglyph">${I.seg}</span>
+        <div class="ptext"><b>${title}</b><div class="range">${fmt(S.rec.start)} → ${fmt(S.pos)} · <b>${fmt(len)}</b></div></div></div>
+        <div class="pbtns"><button class="pill g" data-a="end-seg" ${short?'disabled':''}>End Segment</button>
+        ${forced ? '' : `<button class="pill o" data-a="resume">Resume</button>`}</div>
+        ${short ? `<div class="pwarn">Segments need at least 5 seconds.${forced ? '' : ' Resume to keep recording.'}</div>` : ''}
+        <button class="plink" data-a="cancel-seg">Cancel Segment</button></div>`;
+    }
+  }
+  const ctxLabel = isSeg ? 'Playing Segment' : 'Playing from';
+  return `<section class="np ${S.np ? '' : 'closed'}">
+    <div class="np-art" style="background:${i.t.art}"></div>
+    <div class="np-top"><button data-a="np-close" aria-label="Close">${I.chevDown}</button>
+      <div class="ctx"><small>${ctxLabel}</small>${esc(S.ctx)}</div>
+      <button data-a="more-cur" aria-label="More">${I.dots}</button></div>
+    <div class="np-body">
+      ${prompt}
+      <div class="np-title">${coverHTML(i.t.art, 56, isSeg)}
+        <div class="meta"><h3>${esc(i.title)}</h3><div class="art2">${esc(isSeg ? `${i.t.title} · ${i.artist}` : i.artist)}</div></div>${I.checkc}</div>
+      ${isSeg ? `<span class="segchip">${I.seg} Segment · ${fmt(i.start)}–${fmt(i.end)} of ${esc(i.t.title)}</span>` : ''}
+      ${rec ? `<div class="reclabel"><span class="recdot" style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite"></span><span id="np-reclabel">Recording Segment</span></div>` : ''}
+      <div class="bar ${rec ? 'locked' : ''}" id="np-bar"><div class="track"></div>${rec || S.prompt === 'end' || S.prompt === 'forced' ? '<div class="rec" id="np-rec"></div>' : ''}<div class="fill" id="np-fill"></div><div class="knob" id="np-knob"></div></div>
+      <div class="times"><span id="np-el">0:00</span><span id="np-rem">-0:00</span></div>
+      <div class="controls">
+        <button class="sm ${S.shuffle?'on':''}" data-a="shuffle-toggle" aria-label="Shuffle">${I.shuffle}</button>
+        <button class="sm sk" data-a="prev" aria-label="Previous">${I.prev}</button>
+        <button class="playbtn" data-a="play-toggle" aria-label="Play/Pause">${S.playing ? I.pause : I.play}</button>
+        <button class="sm sk" data-a="next" aria-label="Next">${I.next}</button>
+        <button class="sm ${S.repeat?'on':''}" data-a="repeat" aria-label="Repeat">${S.repeat === 2 ? I.repeat1 : I.repeat}</button>
+      </div>
+      <div class="np-foot"><span class="dev">${I.device} Tri Pods</span><button data-a="share-cur">${I.share}</button><button data-a="nope">${I.queue}</button></div>
+    </div></section>`;
+}
+
+function updateProgress(){
+  const i = info();
+  const span = Math.max(1, i.end - i.start);
+  const r = Math.min(1, Math.max(0, (S.pos - i.start) / span));
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set('np-fill', el => el.style.width = (r*100) + '%');
+  set('np-knob', el => el.style.left = (r*100) + '%');
+  set('np-el', el => el.textContent = fmt(S.pos));
+  set('np-rem', el => el.textContent = '-' + fmt(Math.ceil(i.end - S.pos - 1e-6)));
+  set('mini-fill', el => el.style.width = (r*100) + '%');
+  set('np-rec', el => {
+    const a = (S.rec.start - i.start) / span;
+    el.style.left = (a*100) + '%'; el.style.width = Math.max(0, (r - a)*100) + '%';
+  });
+  set('np-reclabel', el => el.textContent = `Recording Segment · ${fmt(Math.floor(S.pos) - Math.floor(S.rec.start))}`);
+}
+
+function bindBar(){
+  const bar = document.getElementById('np-bar'); if (!bar) return;
+  const seek = e => {
+    const rect = bar.getBoundingClientRect();
+    const r = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const i = info();
+    S.pos = Math.min(i.end - 0.2, i.start + r * (i.end - i.start));
+    updateProgress();
+    const armedTxt = document.querySelector('.prompt.start small');
+    if (armedTxt && S.rec.state === 'armed') armedTxt.textContent = `Press play. Recording starts from ${fmt(S.pos)}.`;
+  };
+  bar.addEventListener('pointerdown', e => {
+    if (S.rec.state === 'recording'){ toast('Scrubbing is locked while a Segment is recording'); return; }
+    bar.setPointerCapture(e.pointerId); seek(e);
+    const mv = ev => seek(ev);
+    const up = () => { bar.removeEventListener('pointermove', mv); bar.removeEventListener('pointerup', up); };
+    bar.addEventListener('pointermove', mv); bar.addEventListener('pointerup', up);
+  });
+}
+
+const removable = sh => sh.ctx === 'pl' && S.screen.name === 'playlist' && !pl(S.screen.id)?.auto;
+function sheetHTML(){
+  const sh = S.sheet; if (!sh) return '';
+  let body = '';
+  if (sh.type === 'name'){
+    body = `<div class="sh-title">Save your Segment</div>
+      <div class="sh-sub">It'll live in Your Library like any song or playlist.</div>
+      <div class="namefield"><label for="nm">${I.pencil} NAME · TAP TO EDIT</label>
+        <input id="nm" value="${esc(sh.value)}" maxlength="60" autocomplete="off">
+        <div class="meta">${esc(TRACKS[sh.tid].title)} · ${esc(TRACKS[sh.tid].artist)} · ${fmt(sh.start)}–${fmt(sh.end)} (${fmt(Math.floor(sh.end) - Math.floor(sh.start))})</div></div>
+      <div class="sh-btns"><button class="pill o" data-a="name-cancel">Cancel</button><button class="pill g" data-a="name-save">Save</button></div>`;
+  } else if (sh.type === 'rename' || sh.type === 'newpl'){
+    body = `<div class="sh-title">${sh.type === 'rename' ? 'Rename Segment' : 'New playlist'}</div>
+      <div class="namefield" style="padding-top:12px"><label for="nm">${I.pencil} NAME · TAP TO EDIT</label><input id="nm" value="${esc(sh.value)}" maxlength="60" autocomplete="off"></div>
+      <div class="sh-btns"><button class="pill o" data-a="sheet-close">Cancel</button><button class="pill g" data-a="${sh.type}-save">${sh.type === 'rename' ? 'Save' : 'Create'}</button></div>`;
+  } else if (sh.type === 'menu-seg'){
+    const s = seg(sh.id), t = TRACKS[s.track];
+    body = `<div class="sh-head">${coverHTML(t.art, 48, true)}<div><div class="t">${esc(s.name)}</div><div class="s">Segment · ${fmt(s.start)}–${fmt(s.end)} of ${esc(t.title)} · ${esc(t.artist)}</div></div></div>
+      <button class="mi" data-a="m-share">${I.share.replace(' class="icon"','')}Share</button>
+      <button class="mi" data-a="m-addpl">${I.plusCircle}Add to playlist</button>
+      ${removable(sh) ? `<button class="mi" data-a="m-remove">${I.minusCircle}Remove from this playlist</button>` : ''}
+      <button class="mi" data-a="m-rename">${I.pencil}Rename</button>
+      <button class="mi" data-a="m-queue">${I.addQ}Add to Queue</button>
+      <button class="mi" data-a="nope">${I.goQ}Go to Queue</button>
+      <button class="mi danger" data-a="m-delete">${I.trash}Delete Segment</button>`;
+  } else if (sh.type === 'menu-track'){
+    const t = TRACKS[sh.id];
+    body = `<div class="sh-head">${coverHTML(t.art, 48)}<div><div class="t">${esc(t.title)}</div><div class="s">${esc(t.artist)}</div></div></div>
+      <button class="mi" data-a="m-share">${I.share.replace(' class="icon"','')}Share</button>
+      <button class="mi" data-a="m-addpl">${I.plusCircle}Add to playlist</button>
+      ${removable(sh) ? `<button class="mi" data-a="m-remove">${I.minusCircle}Remove from this playlist</button>` : ''}
+      <button class="mi" data-a="m-queue">${I.addQ}Add to Queue</button>
+      <button class="mi" data-a="nope">${I.goQ}Go to Queue</button>`;
+  } else if (sh.type === 'addpl'){
+    const n = sh.items.length, what = n > 1 ? `${n} items` : sh.items[0].kind === 'segment' ? 'Segment' : 'song';
+    body = `<div class="sh-title">Add ${what} to playlist</div>
+      <div class="sh-sub">Playlists can mix full songs and Segments.</div>
+      <div class="row" data-a="pl-new"><div class="cover" style="width:52px;height:52px;background:var(--elev3);display:grid;place-items:center">${I.plus}</div><div class="meta"><div class="ttl">New playlist</div></div></div>
+      ${S.playlists.filter(p => !p.auto).map(p => `<div class="row" data-a="pl-pick" data-id="${p.id}">${plCoverHTML(p, 52)}<div class="meta"><div class="ttl">${esc(p.name)}</div><div class="sub"><span>${p.items.length} item${p.items.length === 1 ? '' : 's'}</span></div></div></div>`).join('')}`;
+  }
+  return `<div class="scrim" data-a="scrim"><div class="sheet" data-stop="1"><div class="grab"></div>${body}</div></div>`;
+}
+
+let toastTimer;
+function toast(text, action){
+  S.toast = {text, action}; renderToast();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { S.toast = null; renderToast(); }, action ? 3600 : 2200);
+}
+function renderToast(){
+  const slot = document.getElementById('toastSlot'); if (!slot) return;
+  slot.innerHTML = S.toast ? `<div class="toast"><span>${esc(S.toast.text)}</span>${S.toast.action ? `<button data-a="${S.toast.action[1]}">${S.toast.action[0]}</button>` : ''}</div>` : '';
+}
+
+/* ================= guide ================= */
+const STEPS = [
+  ['played',      'Press <b>Play</b> to start <b>Take Me Out</b>.'],
+  ['startPrompt', 'Pause near the start. A <b>Start Segment?</b> prompt appears above the song title.'],
+  ['recording',   'Tap <b>Start</b>, then press <b>Play</b>. Your Segment begins the instant playback resumes.'],
+  ['endPrompt',   'Let it play. At <b>0:50</b> playback stops for you and shows the same prompt you\'d get by pausing yourself.'],
+  ['saved',       'Tap <b>End Segment</b>, keep or edit the suggested name, and <b>Save</b>. (<b>Resume</b> keeps recording; <b>Cancel Segment</b> discards it.)'],
+  ['segFilter',   'Close the player (⌄) and tap the <b>Segments</b> filter in Your Library to find it.'],
+  ['segPlayed',   'Tap your Segment to play just that range. Try <b>repeat-one</b>, or <b>⋯ → Share</b>.'],
+  ['playlist',    'Tap <b>Select</b>, pick a few Segments and <b>Add to playlist</b>, or open the <b>Segments</b> playlist.'],
+];
+function renderGuide(){
+  const firstOpen = STEPS.findIndex(([k]) => !S.flags[k]);
+  const g = $('#guide');
+  g.classList.toggle('expanded', S.expanded);
+  g.innerHTML = `<div class="g-eyebrow">Feature prototype</div>
+    <h1 class="g-title">Segments</h1>
+    <p class="g-lede">Save the exact part of a song you love, and replay it like any other track. Follow the steps and use the phone.</p>
+    <ol class="steps">${STEPS.map(([k, t], i) => {
+      const cls = S.flags[k] ? 'done' : i === firstOpen ? 'active' + (S.flash && k === 'saved' ? ' flash' : '') : '';
+      return `<li class="step ${cls}"><span class="n">${S.flags[k] ? I.check : i + 1}</span><span class="t">${t}</span></li>`;
+    }).join('')}${firstOpen === -1 ? `<li class="step active"><span class="n">${I.check}</span><span class="t">That's the whole flow. Explore freely, or restart.</span></li>` : ''}</ol>
+    <div class="g-foot"><span class="g-label">Demo speed</span>
+      <div class="seg-toggle"><button class="${speed===1?'on':''}" data-a="speed" data-id="1">1×</button><button class="${speed===4?'on':''}" data-a="speed" data-id="4">4×</button></div>
+      <button class="g-btn" data-a="restart">Restart demo</button>
+      <button class="g-btn g-more" data-a="expand">${S.expanded ? 'Hide steps' : 'All steps'}</button></div>
+    <p class="g-note">Playback is simulated. No audio plays. A concept prototype, not affiliated with Spotify.</p>`;
+}
+
+/* ================= actions ================= */
+function openLibSegments(){
+  S.np = false; S.screen = {name:'library'}; S.stack = []; S.filter = 'segments'; S.sub = null; S.select = false; S.selected = [];
+  flag('segFilter');
+}
+function deleteSeg(id){
+  S.segments = S.segments.filter(s => s.id !== id);
+  S.playlists.forEach(p => { if (!p.auto) p.items = p.items.filter(x => !sameItem(x, {kind:'segment', id})); });
+  const wasCur = S.cur.kind === 'segment' && S.cur.id === id;
+  S.queue = S.queue.filter(q => !(q.kind === 'segment' && q.id === id));
+  if (wasCur){
+    S.cur = {kind:'track', id:'tmo'}; S.pos = 0; S.playing = false; S.ctx = 'Liked Songs';
+    S.queue = [{kind:'track',id:'tmo'}, ...LIKED.map(x => ({kind:'track',id:x}))]; S.qi = 0;
+  } else {
+    S.qi = Math.max(0, S.queue.findIndex(q => q.kind === S.cur.kind && q.id === S.cur.id));
+  }
+}
+function addToPlaylist(pid, items){
+  const p = pl(pid); let n = 0;
+  items.forEach(it => { if (!p.items.some(x => sameItem(x, it))){ p.items.push(it); n++; } });
+  S.sheet = null; S.select = false; S.selected = [];
+  flag('playlist');
+  toast(n ? `Added to ${p.name}` : `Already in ${p.name}`, ['View', 'goto-pl:' + pid]);
+}
+
+const A = {
+  'play-toggle': () => S.playing ? pause() : play(),
+  'next': () => advance(1),
+  'prev': () => { const i = info(); if (S.pos - i.start > 3) S.pos = i.start; else advance(-1); },
+  'shuffle-toggle': () => {
+    S.shuffle = !S.shuffle;
+    if (S.shuffle) shuffleRest();
+    else if (S.baseQueue){ S.queue = S.baseQueue; S.baseQueue = null; S.qi = Math.max(0, S.queue.findIndex(q => q.kind === S.cur.kind && q.id === S.cur.id)); }
+  },
+  'repeat': () => { S.repeat = (S.repeat + 1) % 3; },
+  'np-open': () => { S.np = true; },
+  'np-close': () => { S.np = false; },
+  'start-seg': () => { S.rec.state = 'armed'; },
+  'dismiss-start': () => { disarm(); S.prompt = null; },
+  'end-seg': () => {
+    const tid = info().tid;
+    S.sheet = {type:'name', tid, start:S.rec.start, end:S.pos, value:defaultName(tid, S.rec.start, S.pos)};
+    S.flash = false; renderGuide();
+  },
+  'resume': () => play(),
+  'cancel-seg': () => {
+    S.rec = {state:'idle', start:0, auto50:false}; S.prompt = null; S.flash = false;
+    if (S.pos >= info().end - 0.05) advance(1); else play();
+  },
+  'name-cancel': () => { S.sheet = null; },
+  'name-save': () => {
+    const sh = S.sheet, v = ($('#nm')?.value || '').trim() || defaultName(sh.tid, sh.start, sh.end);
+    S.segments.push({id:'u' + Date.now(), name:v, track:sh.tid, start:Math.floor(sh.start), end:Math.floor(sh.end)});
+    S.rec = {state:'idle', start:0, auto50:false}; S.prompt = null; S.sheet = null;
+    flag('saved');
+    toast('Saved to Your Library', ['View', 'view-segs']);
+  },
+  'view-segs': () => { openLibSegments(); S.toast = null; },
+  'tab-lib': () => { S.np = false; S.screen = {name:'library'}; S.stack = []; S.select = false; },
+  'chip': id => { S.filter = id; S.sub = null; S.select = false; S.selected = []; if (id === 'segments') flag('segFilter'); },
+  'sub': id => { S.sub = S.sub === id ? null : id; },
+  'chip-clear': () => { S.filter = null; S.sub = null; S.select = false; S.selected = []; },
+  'open-liked': () => { S.stack.push(S.screen); S.screen = {name:'liked'}; },
+  'open-pl': id => { S.stack.push(S.screen); S.screen = {name:'playlist', id}; if (id === 'pl-seg') flag('playlist'); },
+  'back': () => { S.screen = S.stack.pop() || {name:'library'}; },
+  'lib-seg': id => {
+    const {items} = libItems();
+    const q = items.filter(x => x.type === 'seg').map(x => ({kind:'segment', id:x.s.id}));
+    playFrom(q, q.findIndex(x => x.id === id), S.filter === 'segments' ? 'Your Segments' : 'Your Library');
+  },
+  'play-liked': i => playFrom(LIKED.map(id => ({kind:'track', id})), +i, 'Liked Songs'),
+  'play-pl': i => { const p = pl(S.screen.id); playFrom(plItems(p).slice(), +i, p.name); },
+  'more-seg': (id, el) => { S.sheet = {type:'menu-seg', id, ctx:el.dataset.ctx}; },
+  'more-track': (id, el) => { S.sheet = {type:'menu-track', id, ctx:el.dataset.ctx}; },
+  'more-cur': () => { S.sheet = S.cur.kind === 'segment' ? {type:'menu-seg', id:S.cur.id, ctx:'np'} : {type:'menu-track', id:S.cur.id}; },
+  'share-cur': () => toast(S.cur.kind === 'segment' ? 'Segment link copied' : 'Link copied'),
+  'share-pl': () => toast('Playlist link copied'),
+  'm-share': () => { const seg = S.sheet.type === 'menu-seg'; S.sheet = null; toast(seg ? 'Segment link copied' : 'Link copied'); },
+  'm-addpl': () => { S.sheet = {type:'addpl', items:[{kind:S.sheet.type === 'menu-seg' ? 'segment' : 'track', id:S.sheet.id}]}; },
+  'm-remove': () => { const p = pl(S.screen.id), it = {kind:S.sheet.type === 'menu-seg' ? 'segment' : 'track', id:S.sheet.id}; p.items = p.items.filter(x => !sameItem(x, it)); S.sheet = null; toast(`Removed from ${p.name}`); },
+  'm-rename': () => { S.sheet = {type:'rename', id:S.sheet.id, value:seg(S.sheet.id).name}; },
+  'rename-save': () => { const v = ($('#nm')?.value || '').trim(); if (v) seg(S.sheet.id).name = v; S.sheet = null; toast('Segment renamed'); },
+  'm-delete': () => { const n = seg(S.sheet.id).name; deleteSeg(S.sheet.id); S.sheet = null; toast(`Deleted “${n}”`); },
+  'm-queue': () => {
+    const item = S.sheet.type === 'menu-seg' ? {kind:'segment', id:S.sheet.id} : {kind:'track', id:S.sheet.id};
+    S.queue.splice(S.qi + 1, 0, item); S.sheet = null; toast('Added to queue');
+  },
+  'sel-mode': () => { S.select = true; S.selected = []; },
+  'sel-cancel': () => { S.select = false; S.selected = []; },
+  'sel-toggle': id => { S.selected = S.selected.includes(id) ? S.selected.filter(x => x !== id) : [...S.selected, id]; },
+  'sel-add': () => { if (S.selected.length) S.sheet = {type:'addpl', items:S.selected.map(id => ({kind:'segment', id}))}; },
+  'pl-pick': id => addToPlaylist(id, S.sheet.items),
+  'pl-new': () => { S.sheet = {type:'newpl', items:S.sheet.items, value:'My Playlist'}; },
+  'newpl-save': () => {
+    const v = ($('#nm')?.value || '').trim() || 'My Playlist';
+    const id = 'pl' + Date.now();
+    S.playlists.push({id, name:v, owner:'CrowdChantsViv', items:[]});
+    addToPlaylist(id, S.sheet.items);
+  },
+  'sheet-close': () => { S.sheet = null; },
+  'scrim': () => { if (S.sheet?.type !== 'name') S.sheet = null; },
+  'nope': () => toast('Not part of this prototype'),
+  'speed': id => { speed = +id; },
+  'restart': () => { const e = S.expanded; S = initial(); S.expanded = e; },
+  'expand': () => { S.expanded = !S.expanded; },
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-a]');
+  if (!el) return;
+  if (el.dataset.a === 'scrim' && e.target.closest('[data-stop]')) return;
+  const a = el.dataset.a;
+  if (a.startsWith('goto-pl:')){
+    const id = a.slice(8); S.toast = null; S.np = false; S.stack = [{name:'library'}]; S.screen = {name:'playlist', id}; flag('playlist'); render(); return;
+  }
+  const fn = A[a]; if (!fn) return;
+  if (el.disabled) return;
+  const r = fn(el.dataset.id, el);
+  if (a !== 'nope' && a !== 'share-cur' && a !== 'share-pl') render();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'nm'){
+    const btn = document.querySelector('.sh-btns .pill.g'); btn && btn.click();
+  }
+});
+
+/* ================= scaling ================= */
+function fit(){
+  const wrap = $('#phoneWrap'), phone = $('#phone');
+  const W = 414, H = 868, narrow = innerWidth <= 820;
+  let s = narrow ? Math.min(1, (innerWidth - 32) / W) : Math.min(1, (innerHeight - 40) / H);
+  s = Math.max(0.55, s);
+  phone.style.transform = `scale(${s})`;
+  wrap.style.width = W * s + 'px'; wrap.style.height = H * s + 'px';
+}
+addEventListener('resize', fit);
+fit();
+render();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
