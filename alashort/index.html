@@ -65,7 +65,7 @@ svg{display:block}
 .d-btn.wide{grid-column:1 / -1}
 .d-shot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #242424;font-size:13px;font-weight:500}
 .d-shot small{display:block;color:var(--dim);font-weight:400;font-size:12px;margin-top:2px}
-.shot-exit{position:fixed;right:14px;bottom:12px;z-index:5;font-size:12px;color:var(--dim);padding:6px 10px;border-radius:999px;border:1px solid #222;opacity:.35;display:none;transition:opacity .2s}
+.shot-exit{position:fixed;right:14px;bottom:12px;z-index:5;font-size:14px;font-weight:500;color:#d6d6d6;padding:8px 14px;border-radius:999px;border:1px solid #3a3a3a;background:rgba(255,255,255,.06);opacity:.85;display:none;transition:opacity .2s}
 .shot-exit:hover{opacity:1}
 body.shot .side{display:none}
 body.shot .shot-exit{display:block}
@@ -202,12 +202,12 @@ body.shot .shot-exit{display:block}
 .nudge{position:absolute;left:0;width:390px;height:760px;overflow:hidden;background:radial-gradient(120% 75% at 50% 32%,#1a2042 0%,#0c0f20 55%,#06070d 100%)}
 .n-glow{position:absolute;width:440px;height:440px;left:-25px;top:110px;border-radius:50%;background:radial-gradient(circle,rgba(159,178,255,.2),transparent 64%);animation:breathe 8s ease-in-out infinite}
 @keyframes breathe{50%{opacity:.55;transform:scale(1.08)}}
-.n-body{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 34px 30px}
+.n-body{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 30px 30px}
 .n-msg{animation:nIn 3s ease .4s both}
 @keyframes nIn{from{opacity:0;transform:translateY(12px);filter:blur(8px)}to{opacity:1;transform:none;filter:blur(0)}}
-.n-l1{font-size:31px;font-weight:700;line-height:1.18;letter-spacing:-.01em}
+.n-l1{font-size:26px;font-weight:700;line-height:1.2;letter-spacing:-.01em;white-space:nowrap}
 .n-l1 b{color:var(--calm);font-weight:700}
-.n-l2{font-size:31px;font-weight:300;line-height:1.18;color:#cbd4ff;margin-top:8px}
+.n-l2{font-size:26px;font-weight:300;line-height:1.2;color:#cbd4ff;margin-top:6px;white-space:nowrap}
 .n-btns{display:flex;flex-direction:column;gap:12px;margin-top:48px}
 .n-b{height:54px;border-radius:999px;font-size:16px;font-weight:500;animation:bIn 1s ease both}
 @keyframes bIn{from{opacity:0;transform:translateY(10px);visibility:hidden}to{opacity:1;transform:none;visibility:visible}}
@@ -315,6 +315,7 @@ input.lim-num{caret-color:var(--accent);box-shadow:0 0 0 6px rgba(255,90,79,.22)
   .demo{order:2}
   .i-title{font-size:28px;margin:2px 0 6px}
   .i-lede{font-size:14px}
+  .shot-exit{position:static;margin:0 auto 16px}
 }
 </style>
 </head>
