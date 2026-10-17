@@ -621,7 +621,7 @@ function settingsHTML(){
     ? `<input class="lim-num" id="limInput" type="text" inputmode="numeric" maxlength="2" value="${d.limit}" aria-label="Daily Shorts limit">`
     : `<button class="lim-num" data-a="set-edit" aria-label="Edit daily Shorts limit">${d.limit}</button>`;
   return `<div class="view" id="view"><div class="set-head"><button class="ib" data-a="set-back" aria-label="Back">${I.back}</button><h1>À La Short</h1></div>
-    <p class="set-lede">Shorts as a menu, not a feed. Choose from a few picks each day; each one plays on its own.</p>
+    <p class="set-lede">Shorts as a menu, not a feed. Choose from a few picks each day; each one plays alone.</p>
     <div class="s-card">
       <div class="s-row"><div class="l"><div class="t">À La Short</div><div class="s">${d.on ? 'On' : 'Off'}${locked ? ' · can’t turn off while locked' : ''}</div></div>
         <button class="switch ${d.on ? 'on' : ''}" data-a="set-toggle" role="switch" aria-checked="${d.on}" aria-label="À La Short" ${locked ? 'disabled' : ''}></button></div>
@@ -674,7 +674,7 @@ function renderSide(){
     <section class="card-o intro">
       <div class="i-eyebrow">Concept prototype</div>
       <h1 class="i-title">À La Short</h1>
-      <p class="i-lede">The endless feed is the problem, not short videos: À La Short turns Shorts into a menu where you choose a few a day, each plays on its own, and a gentle nudge helps heavy scrollers find it.</p>
+      <p class="i-lede">The endless feed is the problem, not short videos: À La Short turns Shorts into a menu where you choose a few a day, each plays alone, and a gentle nudge helps heavy scrollers find it.</p>
       <div class="i-btns"><button class="i-btn p" data-a="i-nudge">Try the nudge</button><button class="i-btn" data-a="i-als">Try À La Short</button></div>
       <p class="i-note">Placeholder videos, simulated clock. Use your mouse, touch, or arrow keys / space to scroll the feed.</p>
     </section>
