@@ -136,12 +136,19 @@ body.shot .shot-exit{display:block}
 .m-pager .ib svg{width:18px;height:18px}
 .m-row{display:flex;align-items:center;gap:12px;padding:8px 8px 8px 10px;border-radius:14px;cursor:pointer;transition:background .15s,opacity .3s}
 .m-row:hover{background:#1f1f1f}
-.m-thumb{flex:none;width:56px;height:88px;border-radius:9px;position:relative;overflow:hidden;display:grid;place-items:center;transition:filter .4s,opacity .4s}
-.m-thumb svg{width:22px;height:22px;color:rgba(255,255,255,.92);filter:drop-shadow(0 1px 4px rgba(0,0,0,.4))}
+.m-thumb{flex:none;width:56px;height:88px;border-radius:9px;position:relative;overflow:hidden;display:grid;place-items:center}
+.m-art{position:absolute;inset:0;transition:filter .4s}
+.m-thumb > svg{position:relative;width:22px;height:22px;color:rgba(255,255,255,.92);filter:drop-shadow(0 1px 4px rgba(0,0,0,.4))}
+.m-badge{position:relative;width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+.m-badge svg{width:18px;height:18px}
+.m-badge.w{background:rgba(159,178,255,.22);color:#dfe5ff;box-shadow:0 0 0 1.5px rgba(159,178,255,.55)}
+.m-badge.l{background:rgba(0,0,0,.55);color:#9a9a9a;box-shadow:0 0 0 1.5px #4a4a4a}
 .m-meta{flex:1;min-width:0}
 .m-ttl{font-size:14.5px;font-weight:500;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .m-sub{font-size:12.5px;color:var(--sub);margin-top:4px}
-.m-tag{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:11.5px;font-weight:500;color:var(--sub);background:#262626;border-radius:999px;padding:2px 8px 2px 6px}
+.m-tag{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:11.5px;font-weight:500;border-radius:999px;padding:2px 8px 2px 6px}
+.m-tag.w{color:#cbd4ff;background:var(--calm-soft)}
+.m-tag.l{color:#ff8a80;background:var(--accent-soft)}
 .m-tag svg{width:13px;height:13px}
 .m-act{flex:none;display:flex;align-items:center;gap:0}
 .m-ic{width:38px;height:44px;display:grid;place-items:center;color:var(--sub);border-radius:10px}
@@ -149,10 +156,11 @@ body.shot .shot-exit{display:block}
 .m-ic svg{width:20px;height:20px}
 .m-replay{width:42px;height:42px;border-radius:50%;border:1px solid var(--elev3);display:grid;place-items:center;color:var(--text);margin-right:2px}
 .m-replay svg{width:19px;height:19px}
-.m-row.watched .m-thumb{opacity:.38;filter:saturate(.5)}
-.m-row.watched .m-ttl,.m-row.watched .m-sub{opacity:.45}
-.m-row.locked{cursor:not-allowed}
-.m-row.locked .m-thumb{filter:grayscale(1) brightness(.45)}
+.m-row.watched .m-art{filter:saturate(.45) brightness(.45)}
+.m-row.watched .m-ttl,.m-row.watched .m-sub{opacity:.6}
+.m-row.locked{background:repeating-linear-gradient(135deg,#151515 0 8px,#191919 8px 16px);box-shadow:inset 0 0 0 1px #262626;margin:2px 0}
+.m-row.locked:hover{background:repeating-linear-gradient(135deg,#171717 0 8px,#1c1c1c 8px 16px)}
+.m-row.locked .m-art{filter:grayscale(1) brightness(.3)}
 .m-row.locked .m-ttl,.m-row.locked .m-sub{color:var(--dim)}
 .m-row.fresh{animation:fresh .55s ease both}
 @keyframes fresh{from{opacity:0;transform:translateX(10px)}}
@@ -267,6 +275,20 @@ input.lim-num{caret-color:var(--accent);box-shadow:0 0 0 6px rgba(255,90,79,.22)
 .expl{font-size:13.5px;color:var(--sub);line-height:1.6;padding:6px 20px 0}
 .cta{display:block;width:calc(100% - 32px);margin:26px 16px 0;height:52px;border-radius:999px;background:#f1f1f1;color:#0f0f0f;font-size:16px;font-weight:500}
 
+/* limit screen */
+.limit-scr{position:absolute;left:0;right:0;top:0;bottom:84px;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 34px 20px;text-align:center;background:radial-gradient(120% 70% at 50% 35%,#24161a 0%,#120d0f 55%,#0b0b0b 100%);animation:fadein .35s ease}
+.ls-ic{width:72px;height:72px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin-bottom:22px;box-shadow:0 0 0 8px rgba(255,90,79,.06)}
+.ls-ic svg{width:32px;height:32px}
+.ls-t{font-size:24px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+.ls-b{font-size:15px;color:var(--sub);line-height:1.5;margin-top:10px}
+.ls-b b{color:var(--text);font-weight:500}
+.ls-btns{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:34px}
+.ls-p,.ls-s{height:50px;border-radius:999px;font-size:15.5px;font-weight:500}
+.ls-p{background:#f1f1f1;color:#0f0f0f}
+.ls-s{background:rgba(255,255,255,.1)}
+.ls-note{font-size:12.5px;color:var(--dim);margin-top:18px;line-height:1.45}
+.stp.is-off,.switch.is-off{opacity:.28;cursor:not-allowed}
+
 /* you */
 .you-h{display:flex;align-items:center;gap:14px;padding:12px 18px 22px}
 .you-h .av{width:64px;height:64px}
@@ -286,14 +308,6 @@ input.lim-num{caret-color:var(--accent);box-shadow:0 0 0 6px rgba(255,90,79,.22)
 .chan span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* overlays */
-.scrim{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;animation:fadein .25s ease;padding:0 32px}
-.dialog{width:100%;background:#212121;border-radius:22px;padding:26px 22px 18px;text-align:center;animation:pop .3s cubic-bezier(.3,.7,.2,1)}
-@keyframes pop{from{transform:scale(.94);opacity:0}}
-.dlg-ic{width:48px;height:48px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 14px}
-.dlg-ic svg{width:24px;height:24px}
-.dlg-t{font-size:18px;font-weight:700;line-height:1.3}
-.dlg-b{font-size:14.5px;color:var(--sub);margin-top:8px;line-height:1.45}
-.dlg-btn{width:100%;height:46px;border-radius:999px;background:#f1f1f1;color:#0f0f0f;font-size:15px;font-weight:500;margin-top:22px}
 .toast{position:absolute;left:50%;bottom:100px;transform:translateX(-50%);background:#f1f1f1;color:#0f0f0f;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:500;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:tin .25s ease;transition:opacity .3s}
 @keyframes tin{from{opacity:0;transform:translate(-50%,8px)}}
 .splash{position:absolute;inset:0;z-index:95;background:#0f0f0f;display:grid;place-items:center;animation:sout .4s ease .8s forwards}
@@ -449,7 +463,7 @@ function initial(){
     sess:{pos:0, max:0, seq:[], nudged:[]},
     onNudge:false, nudgeInstant:false,
     mode:{on:false, limit:5, lockUntil:0, day:dayKey(START), used:0, slots:[], page:0, seen:[]},
-    draft:null, player:null, popup:null, fresh:[], splash:false,
+    draft:null, player:null, fresh:[], splash:false,
   };
 }
 let S = initial();
@@ -474,20 +488,23 @@ function pickMenu(exclude){
   const from = pool.length ? pool : SHORTS;
   return from[Math.floor(rand() * from.length)].id;
 }
+const pageCeil = n => Math.max(PER_PAGE, Math.ceil(n / PER_PAGE) * PER_PAGE);
 function ensureSlots(){
+  // Picks come in full pages of 5: the limit rounded up to the next multiple
+  // of 5. Watched picks keep their exact slot (and page) until the daily reset.
   const m = S.mode;
-  const watched = m.slots.filter(s => s.watched).length;
-  let need = Math.max(m.limit, PER_PAGE, watched) - watched;
-  const kept = [];
-  for (const s of m.slots){ if (s.watched) kept.push(s); else if (need > 0){ kept.push(s); need--; } }
-  while (need-- > 0){ kept.push({id:pickMenu([...kept.map(s => s.id), ...m.seen]), watched:false}); }
+  let lastWatched = -1;
+  m.slots.forEach((s, i) => { if (s.watched) lastWatched = i; });
+  const target = Math.max(pageCeil(m.limit), pageCeil(lastWatched + 1));
+  const kept = m.slots.slice(0, target);
+  while (kept.length < target) kept.push({id:pickMenu([...kept.map(s => s.id), ...m.seen]), watched:false});
   m.slots = kept;
   m.page = clamp(m.page, 0, Math.max(0, Math.ceil(m.slots.length / PER_PAGE) - 1));
 }
 function dailyReset(){
   const m = S.mode;
   m.used = 0; m.slots = []; m.page = 0; m.seen = []; m.day = dayKey(S.t);
-  if (S.popup === 'limit') S.popup = null;
+  if (S.screen === 'limit') S.screen = 'home';
   ensureSlots();
 }
 function checkTime(){
@@ -523,12 +540,12 @@ function menuHTML(){
   const start = m.page * PER_PAGE;
   const rows = m.slots.slice(start, start + PER_PAGE).map((sl, j) => rowHTML(sl, start + j, reached)).join('');
   const count = m.used > m.limit ? `Limit reached · <b>${m.used}</b> watched today` : `<b>${m.used}</b> of ${m.limit} today`;
-  const canRefresh = m.slots.some(s => !s.watched);
+  const canRefresh = !reached && m.slots.some(s => !s.watched);
   return `<section class="menu" id="menu">
     <div class="m-head"><div class="l"><div class="m-title">${I.menu}À La Short</div><div class="m-count">${count}</div></div>
       <div class="m-tools">
         ${pages > 1 ? `<div class="m-pager"><button class="ib" data-a="m-page" data-id="-1" ${m.page === 0 ? 'disabled' : ''} aria-label="Previous picks">${I.chevL}</button><span>${m.page + 1}/${pages}</span><button class="ib" data-a="m-page" data-id="1" ${m.page === pages - 1 ? 'disabled' : ''} aria-label="Next picks">${I.chevR}</button></div>` : ''}
-        <button class="ib" id="refreshBtn" data-a="m-refresh" ${canRefresh ? '' : 'disabled'} aria-label="Refresh unopened picks">${I.refresh}</button>
+        <button class="ib" id="refreshBtn" data-a="m-refresh" ${canRefresh ? '' : 'disabled'} aria-label="Refresh available picks">${I.refresh}</button>
         <button class="ib" data-a="set-open" data-id="home" aria-label="À La Short settings">${I.tune}</button>
       </div></div>
     <div class="m-list">${rows}</div>
@@ -541,9 +558,11 @@ function rowHTML(sl, i, reached){
   const act = st === 'watched'
     ? `<button class="m-replay" data-a="m-open" data-id="${i}" aria-label="Replay">${I.replay}</button>`
     : `<button class="m-ic" data-a="m-save" aria-label="Save">${I.bookmark}</button><button class="m-ic" data-a="m-share" aria-label="Share">${I.share}</button>`;
+  const mark = st === 'open' ? I.play : `<span class="m-badge ${st === 'watched' ? 'w' : 'l'}">${st === 'watched' ? I.check : I.lock}</span>`;
+  const tag = st === 'watched' ? `<span class="m-tag w">${I.check}Watched</span>` : st === 'locked' ? `<span class="m-tag l">${I.lock}Limit reached</span>` : '';
   return `<div class="m-row ${st} ${fresh}" data-a="m-open" data-id="${i}" role="button" tabindex="0" style="animation-delay:${(S.fresh.indexOf(i)) * 60}ms">
-    <div class="m-thumb" style="background:${sGrad(sh)}">${st === 'open' ? I.play : ''}</div>
-    <div class="m-meta"><div class="m-ttl">${esc(sh.title)}</div><div class="m-sub">${esc(sh.creator)} · ${fmtDur(sh.dur)}</div>${st === 'watched' ? `<span class="m-tag">${I.check}Watched</span>` : ''}</div>
+    <div class="m-thumb"><div class="m-art" style="background:${sGrad(sh)}"></div>${mark}</div>
+    <div class="m-meta"><div class="m-ttl">${esc(sh.title)}</div><div class="m-sub">${esc(sh.creator)} · ${fmtDur(sh.dur)}</div>${tag}</div>
     <div class="m-act">${act}</div></div>`;
 }
 function homeHTML(){
@@ -616,32 +635,36 @@ function playerHTML(){
 }
 function settingsHTML(){
   const d = S.draft, m = S.mode, locked = m.on && lockActive();
-  const plusDis = d.limit >= MAX_LIMIT || (locked && d.limit >= m.limit);
-  const label = (!m.on && d.on) ? 'Turn on' : 'Save';
+  const plusDis = d.limit >= MAX_LIMIT, plusLocked = locked && d.limit >= m.limit;
+  const why = lockWhy();
+  const label = d.live ? 'Done' : d.on ? 'Turn on' : 'Done';
   const num = d.editing
     ? `<input class="lim-num" id="limInput" type="text" inputmode="numeric" maxlength="2" value="${d.limit}" aria-label="Daily Shorts limit">`
     : `<button class="lim-num" data-a="set-edit" aria-label="Edit daily Shorts limit">${d.limit}</button>`;
   return `<div class="view" id="view"><div class="set-head"><button class="ib" data-a="set-back" aria-label="Back">${I.back}</button><h1>À La Short</h1></div>
     <p class="set-lede">Shorts as a menu, not a feed. Choose from a few picks each day; each one plays alone.</p>
+    ${locked ? `<div class="lockbox">${I.lock}<span><b>Changes unlock ${lockText()}.</b></span></div>` : ''}
     <div class="s-card">
-      <div class="s-row"><div class="l"><div class="t">À La Short</div><div class="s">${d.on ? 'On' : 'Off'}${locked ? ' · can’t turn off while locked' : ''}</div></div>
-        <button class="switch ${d.on ? 'on' : ''}" data-a="set-toggle" role="switch" aria-checked="${d.on}" aria-label="À La Short" ${locked ? 'disabled' : ''}></button></div>
+      <div class="s-row"><div class="l"><div class="t">À La Short</div><div class="s">${d.on ? 'On' : 'Off'}</div></div>
+        <button class="switch ${d.on ? 'on' : ''} ${locked ? 'is-off' : ''}" data-a="set-toggle" role="switch" aria-checked="${d.on}" aria-label="À La Short" ${locked ? `aria-disabled="true" title="${why}"` : ''}></button></div>
       <div class="lim" style="${d.on ? '' : 'opacity:.45'}">
         <div class="lim-l">Daily Shorts limit</div>
-        <div class="stepper"><button class="stp" data-a="set-step" data-id="-1" ${d.limit <= 1 ? 'disabled' : ''} aria-label="Decrease">${I.minus}</button>${num}<button class="stp" data-a="set-step" data-id="1" ${plusDis ? 'disabled' : ''} aria-label="Increase">${I.plusS}</button></div>
-        <div class="lim-s ${locked ? 'lk' : ''}">${locked ? 'You can lower your limit now. Raising it is locked.' : 'Shorts a day · tap the number to type'}</div>
+        <div class="stepper"><button class="stp" data-a="set-step" data-id="-1" ${d.limit <= 1 ? 'disabled' : ''} aria-label="Decrease">${I.minus}</button>${num}<button class="stp ${plusLocked ? 'is-off' : ''}" data-a="set-step" data-id="1" ${plusDis ? 'disabled' : ''} ${plusLocked ? `aria-disabled="true" title="${why}"` : ''} aria-label="Increase">${I.plusS}</button></div>
+        <div class="lim-s ${locked ? 'lk' : ''}">${locked ? `You can lower your limit anytime. Raising it or turning À La Short off unlocks ${lockText()}.` : 'Shorts a day · tap the number to type'}</div>
       </div>
     </div>
-    ${locked ? `<div class="lockbox">${I.lock}<span><b>Changes unlock ${lockText()}.</b></span></div>` : ''}
     <p class="expl">Lowering your limit takes effect right away. Raising it or turning À La Short off is locked for 12 hours, starting with the first Short you watch while it's on. The rest of YouTube is never affected. Your limit applies on every device you're signed into.</p>
     <button class="cta" data-a="set-save">${label}</button>
   </div>`;
 }
-function popupHTML(){
-  return `<div class="scrim" data-a="popup-ok"><div class="dialog" data-stop role="dialog" aria-modal="true">
-    <div class="dlg-ic">${I.lock}</div><div class="dlg-t">You've hit your Shorts limit for today.</div>
-    <div class="dlg-b">It resets tomorrow at ${fmtTime(nextMidnight(S.t))}.</div>
-    <button class="dlg-btn" data-a="popup-ok">Got it</button></div></div>`;
+function limitHTML(){
+  return `<div class="limit-scr" role="dialog" aria-labelledby="lsTitle">
+    <div class="ls-ic">${I.lock}</div>
+    <div class="ls-t" id="lsTitle">You've hit your Shorts limit for today</div>
+    <div class="ls-b">New Shorts unlock tomorrow at <b>${fmtTime(nextMidnight(S.t))}</b>.</div>
+    <div class="ls-btns"><button class="ls-p" data-a="ls-settings">Limit settings</button><button class="ls-s" data-a="ls-back">Back</button></div>
+    <div class="ls-note">Rewatching today's picks is always free. The rest of YouTube is open as usual.</div>
+  </div>`;
 }
 function screenHTML(){
   switch (S.screen){
@@ -650,12 +673,13 @@ function screenHTML(){
     case 'settings': return settingsHTML();
     case 'subs': return subsHTML();
     case 'you': return youHTML();
+    case 'limit': return homeHTML() + limitHTML();
     default: return homeHTML();
   }
 }
 function render(){
   const v = $('#view'), keep = v && lastScreen === S.screen ? v.scrollTop : 0;
-  app.innerHTML = screenHTML() + (S.popup ? popupHTML() : '') + (S.splash ? '<div class="splash"><i></i></div>' : '');
+  app.innerHTML = screenHTML() + (S.splash ? '<div class="splash"><i></i></div>' : '');
   const nv = $('#view'); if (nv) nv.scrollTop = keep;
   lastScreen = S.screen;
   S.fresh = [];
@@ -690,7 +714,8 @@ function renderSide(){
           <button class="d-btn" data-a="d-ff">Fast-forward 12 hours</button>
           <button class="d-btn" data-a="d-next">Next day</button>
           <button class="d-btn" data-a="d-end" ${S.screen === 'player' && !S.player.ended ? '' : 'disabled'}>Skip to end of Short</button>
-          <button class="d-btn" data-a="d-reset">Reset prototype</button>
+          <button class="d-btn" data-a="d-watch" ${S.mode.on && S.mode.used < S.mode.limit ? '' : 'disabled'}>Watch up to limit</button>
+          <button class="d-btn wide" data-a="d-reset">Reset prototype</button>
         </div>
         <div class="d-shot"><div>Screenshot mode<small>Hides this panel and the intro. Esc to exit.</small></div><button class="switch" data-a="d-shot" role="switch" aria-checked="false" aria-label="Screenshot mode"></button></div>
       </div>
@@ -739,7 +764,7 @@ function leaveNudge(){ const s = S.sess; if (!s.nudged.includes(s.max)) s.nudged
 /* pointer drag (feed + player) */
 let drag = null, suppressClick = false;
 app.addEventListener('pointerdown', e => {
-  if (anim || S.popup || e.button > 0) return;
+  if (anim || e.button > 0) return;
   if (S.screen === 'feed' && e.target.closest('#feed') && !e.target.closest('.n-b')) drag = {y:e.clientY, t:performance.now(), dy:0, id:e.pointerId, on:false, el:$('#track')};
   else if (S.screen === 'player' && !S.player.ended && !e.target.closest('.p-scrub,.p-back')) drag = {y:e.clientY, t:performance.now(), dy:0, id:e.pointerId, on:false, el:$('#player .short')};
 });
@@ -800,19 +825,28 @@ function goHomeMenu(){
 }
 function openSettings(from){
   const m = S.mode;
-  S.draft = {on: from === 'nudge' || from === 'intro' ? true : m.on, limit:m.limit, editing:false, from};
+  S.draft = {on: from === 'nudge' || from === 'intro' ? true : m.on, limit:m.limit, editing:false, from, live:m.on};
   if (from !== 'settings') S.back = S.screen === 'settings' ? S.back : S.screen;
   S.screen = 'settings';
 }
 function commitEdit(){
   const d = S.draft; if (!d || !d.editing) return;
   const inp = $('#limInput'), v = parseInt(inp ? inp.value : '', 10);
-  const cap = S.mode.on && lockActive() ? S.mode.limit : MAX_LIMIT;
-  if (!isNaN(v)) d.limit = clamp(v, 1, cap);
+  const locked = S.mode.on && lockActive(), cap = locked ? S.mode.limit : MAX_LIMIT;
+  if (!isNaN(v)){ if (locked && v > cap) toast(lockWhy()); d.limit = clamp(v, 1, cap); }
   d.editing = false;
+  applyLive();
+}
+function lockWhy(){ return `Raising your limit or turning À La Short off unlocks ${lockText()}.`; }
+function applyLive(){
+  // Once the mode is on, settings changes apply immediately (raising is
+  // capped while the lock is active), so the homepage reflects them at once.
+  const d = S.draft, m = S.mode; if (!d || !d.live) return;
+  m.limit = d.limit; m.on = d.on;
+  if (m.on) ensureSlots();
 }
 function play(id, slot){ S.player = {id, slot, el:0, ended:false}; S.screen = 'player'; }
-function closeTransient(){ S.popup = null; S.player = null; S.draft = null; anim = false; }
+function closeTransient(){ S.player = null; S.draft = null; anim = false; }
 
 const A = {
   nope: () => 'skip',
@@ -842,16 +876,23 @@ const A = {
     if (from === 'nudge' && !S.mode.on){ S.screen = 'feed'; S.onNudge = true; S.nudgeInstant = true; return; }
     S.screen = ['home','subs','you'].includes(S.back) ? S.back : 'home';
   },
-  'set-toggle': () => { commitEdit(); S.draft.on = !S.draft.on; },
+  'set-toggle': () => {
+    commitEdit();
+    if (S.mode.on && lockActive()){ toast(lockWhy()); return; }
+    S.draft.on = !S.draft.on; applyLive();
+  },
   'set-edit': () => { if (!S.draft.on) S.draft.on = true; S.draft.editing = true; },
   'set-step': id => {
     commitEdit();
-    const d = S.draft, m = S.mode, cap = m.on && lockActive() ? m.limit : MAX_LIMIT;
-    if (!d.on) d.on = true;
+    const d = S.draft, m = S.mode, locked = m.on && lockActive(), cap = locked ? m.limit : MAX_LIMIT;
+    if (Number(id) > 0 && locked && d.limit >= cap){ toast(lockWhy()); return; }
+    if (!d.on && !locked) d.on = true;
     d.limit = clamp(d.limit + Number(id), 1, cap);
+    applyLive();
   },
   'set-save': () => {
     commitEdit();
+    if (S.draft.live){ S.draft = null; S.screen = 'home'; lastScreen = null; return; }
     const d = S.draft, m = S.mode, locked = m.on && lockActive(), wasOn = m.on;
     const on = locked ? true : d.on;
     m.limit = locked ? Math.min(d.limit, m.limit) : d.limit;
@@ -864,7 +905,7 @@ const A = {
   'm-open': id => {
     const m = S.mode, i = Number(id), sl = m.slots[i]; if (!sl) return 'skip';
     if (sl.watched){ play(sl.id, i); return; }
-    if (m.used >= m.limit){ S.popup = 'limit'; return; }
+    if (m.used >= m.limit){ S.screen = 'limit'; return; }
     sl.watched = true; m.used++; m.seen.push(sl.id);
     if (!lockActive()){ m.lockUntil = S.t + 12 * HOUR; wasLocked = true; }
     play(sl.id, i);
@@ -891,7 +932,8 @@ const A = {
     p.el = f * SH[p.id].dur; if (f >= 0.995){ p.ended = true; return; }
     return 'skip';
   },
-  'popup-ok': () => { S.popup = null; },
+  'ls-settings': () => openSettings('limit'),
+  'ls-back': () => { S.screen = 'home'; },
 
   /* side panel */
   'i-nudge': () => {
@@ -915,6 +957,16 @@ const A = {
   'd-ff': () => { S.t += 12 * HOUR; checkTime(); if (S.draft) S.draft.limit = Math.min(S.draft.limit, MAX_LIMIT); toast('Fast-forwarded 12 hours'); },
   'd-next': () => { S.t += DAY; checkTime(); toast('Next day · fresh picks'); },
   'd-end': () => { if (S.player) S.player.el = Math.max(0, SH[S.player.id].dur - 0.6); return 'skip'; },
+  'd-watch': () => {
+    const m = S.mode; if (!m.on) return 'skip';
+    for (const sl of m.slots){
+      if (m.used >= m.limit) break;
+      if (sl.watched) continue;
+      sl.watched = true; m.used++; m.seen.push(sl.id);
+      if (!lockActive()){ m.lockUntil = S.t + 12 * HOUR; wasLocked = true; }
+    }
+    if (S.screen !== 'settings'){ closeTransient(); S.screen = 'home'; }
+  },
   'd-reset': () => { S = initial(); feedEl = 0; anim = false; wasLocked = false; lastScreen = null; },
   'd-shot': () => { UI.shot = !UI.shot; document.body.classList.toggle('shot', UI.shot); fit(); return 'skip'; },
 };
@@ -923,7 +975,6 @@ document.addEventListener('click', e => {
   if (suppressClick) return;
   const el = e.target.closest('[data-a]');
   if (!el) return;
-  if (el.dataset.a === 'popup-ok' && el.classList.contains('scrim') && e.target.closest('[data-stop]')) return;
   const fn = A[el.dataset.a]; if (!fn || el.disabled) return;
   if (el.closest('#app')) layer.querySelectorAll('.toast').forEach(t => { if (el.dataset.a !== 'm-save' && el.dataset.a !== 'm-share') t.remove(); });
   const r = fn(el.dataset.id, el, e);
@@ -940,7 +991,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape'){
     if (UI.shot){ A['d-shot'](); return; }
-    if (S.popup){ S.popup = null; render(); return; }
+    if (S.screen === 'limit'){ S.screen = 'home'; render(); return; }
   }
   const onBtn = e.target.closest && e.target.closest('button,[role=button]');
   if ((e.key === 'Enter' || e.key === ' ') && onBtn){
@@ -948,7 +999,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   const fwd = ['ArrowDown', ' ', 'PageDown', 'j'].includes(e.key), bwd = ['ArrowUp', 'PageUp', 'k'].includes(e.key);
-  if (!fwd && !bwd || S.popup) return;
+  if (!fwd && !bwd) return;
   if (S.screen === 'feed'){ e.preventDefault(); feedGo(fwd ? 1 : -1); }
   else if (S.screen === 'player' && !S.player.ended){ e.preventDefault(); bounce($('#player .short'), fwd ? 1 : -1, true); }
 });
@@ -962,7 +1013,7 @@ function tick(now){
     const sh = seqAt(S.sess.pos); feedEl = (feedEl + dt / 1000) % sh.dur;
     const p = app.querySelector('[data-el="prog"]'); if (p) p.style.width = (feedEl / sh.dur * 100) + '%';
   }
-  if (S.screen === 'player' && S.player && !S.player.ended && !S.popup){
+  if (S.screen === 'player' && S.player && !S.player.ended){
     const sh = SH[S.player.id]; S.player.el += dt / 1000;
     if (S.player.el >= sh.dur){ S.player.ended = true; render(); }
     else { const p = app.querySelector('[data-el="pprog"]'); if (p) p.style.width = (S.player.el / sh.dur * 100) + '%'; }
